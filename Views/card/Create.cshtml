@@ -1,0 +1,84 @@
+﻿@model Card
+
+@{
+    ViewData["Title"] = "Add New Card";
+}
+
+<h2>Add New Pokemon Card</h2>
+
+<form action="/Card/Create" method="post" enctype="multipart/form-data" style="max-width: 600px;">
+    <div style="margin-bottom: 1rem;">
+        <label for="uniqueId" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Unique ID *</label>
+        <input type="text" id="uniqueId" name="uniqueId" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Card Name *</label>
+        <input type="text" id="name" name="name" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="artist" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Artist</label>
+        <input type="text" id="artist" name="artist" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="packName" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Pack Name</label>
+        <input type="text" id="packName" name="packName" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="pokedexNo" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Pokedex Number</label>
+        <input type="number" id="pokedexNo" name="pokedexNo" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="type" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Type</label>
+        <input type="text" id="type" name="type" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="rarity" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Rarity</label>
+        <input type="text" id="rarity" name="rarity" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" id="isEX" name="isEX" style="margin-right: 0.5rem;" />
+            <span>Is EX Card</span>
+        </label>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" id="isFullArt" name="isFullArt" style="margin-right: 0.5rem;" />
+            <span>Is Full Art</span>
+        </label>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" id="isHolo" name="isHolo" style="margin-right: 0.5rem;" />
+            <span>Is Holo</span>
+        </label>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="holoType" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Holo Type</label>
+        <input type="text" id="holoType" name="holoType" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="imageFile" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Card Image</label>
+        <input type="file" id="imageFile" name="imageFile" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="display: flex; gap: 1rem;">
+        <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Add Card
+        </button>
+        <a href="/Card/Index" style="padding: 0.75rem 1.5rem; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+            Cancel
+        </a>
+    </div>
+</form>

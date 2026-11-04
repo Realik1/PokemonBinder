@@ -1,0 +1,755 @@
+﻿@model Binder
+
+@{
+    ViewData["Title"] = $"View Binder - {Model.Name}";
+}
+
+<style>
+    .binder-viewer-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .binder-header {
+        text-align: center;
+        color: white;
+        margin-bottom: 2rem;
+    }
+
+        .binder-header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .binder-header p {
+            margin: 0.5rem 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+    .binder-display {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    .page-container {
+        perspective: 1000px;
+        width: 600px;
+        height: 800px;
+    }
+
+    .page {
+        width: 100%;
+        height: 100%;
+        background-color: #2a2a2a;
+        border-radius: 2px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 1px 1px 0 rgba(255, 255, 255, 0.1), -2px 0 0 rgba(0, 0, 0, 0.3);
+        display: flex;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+
+        .page.flipped {
+            transform: rotateY(180deg);
+        }
+
+    .page-content {
+        width: 100%;
+        height: 100%;
+        padding: 30px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .page-spine {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 20px;
+        height: 100%;
+        background: linear-gradient(90deg, #1a1a1a 0%, #2a2a2a 100%);
+        border-right: 1px solid rgba(0, 0, 0, 0.5);
+    }
+
+    .page-holes {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        padding: 20px 0;
+    }
+
+    .hole {
+        width: 12px;
+        height: 12px;
+        background-color: #1a1a1a;
+        border-radius: 50%;
+        margin-left: 4px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .card-grid {
+        display: grid;
+        gap: 15px;
+        flex: 1;
+        margin-left: 15px;
+    }
+
+        .card-grid.grid-2x2 {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
+        .card-grid.grid-3x3 {
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+        }
+
+        .card-grid.grid-4x4 {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+        }
+
+        .card-grid.grid-single {
+            grid-template-columns: 1fr;
+            grid-template-rows: 1fr;
+        }
+
+    .card-slot {
+        background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+        border: 2px solid #999;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        aspect-ratio: 2.5 / 3.5;
+    }
+
+        .card-slot:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border-color: #667eea;
+        }
+
+        .card-slot.filled {
+            border-color: #666;
+            padding: 2px;
+        }
+
+            .card-slot.filled img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 2px;
+            }
+
+        .card-slot.empty {
+            background: linear-gradient(135deg, #e8e8e8 0%, #d0d0d0 100%);
+            color: #999;
+            font-size: 0.8rem;
+            text-align: center;
+            padding: 10px;
+        }
+
+            .card-slot.empty::before {
+                content: '';
+                position: absolute;
+                width: 30px;
+                height: 2px;
+                background-color: #ddd;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+            .card-slot.empty::after {
+                content: '';
+                position: absolute;
+                width: 2px;
+                height: 30px;
+                background-color: #ddd;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+
+    .card-slot-placeholder {
+        font-size: 0.75rem;
+        color: #bbb;
+        text-align: center;
+        z-index: 1;
+    }
+
+    .page-number {
+        text-align: center;
+        color: #888;
+        font-size: 0.9rem;
+        padding-top: 10px;
+        border-top: 1px solid #444;
+    }
+
+    .controls {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        color: white;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background-color: #667eea;
+    }
+
+        .btn-primary:hover {
+            background-color: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    .btn-secondary {
+        background-color: #764ba2;
+    }
+
+        .btn-secondary:hover {
+            background-color: #63398b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(118, 75, 162, 0.4);
+        }
+
+    .btn-success {
+        background-color: #28a745;
+    }
+
+        .btn-success:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+    .page-info {
+        color: white;
+        text-align: center;
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .page-navigation {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .page-counter {
+        color: white;
+        font-weight: 600;
+        min-width: 200px;
+        text-align: center;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    .cover-preview {
+        width: 150px;
+        height: 200px;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f0f0;
+        color: #999;
+    }
+
+        .cover-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .binder-info {
+        color: white;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+        .binder-info p {
+            margin: 0.5rem 0;
+            opacity: 0.9;
+        }
+
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+    .modal-content {
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #999;
+    }
+
+    .card-select {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .card-option {
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        padding: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+        background-color: #f9f9f9;
+    }
+
+        .card-option:hover {
+            border-color: #667eea;
+            background-color: #f0f5ff;
+        }
+
+        .card-option.selected {
+            border-color: #667eea;
+            background-color: #e0e7ff;
+        }
+
+        .card-option img {
+            width: 100%;
+            height: auto;
+            border-radius: 2px;
+        }
+
+    @@keyframes pageFlip {
+        0% {
+            transform: rotateY(180deg);
+        }
+
+        100% {
+            transform: rotateY(0deg);
+        }
+    }
+</style>
+
+<div class="binder-viewer-container" id="binderContainer" data-binder-id="@Model.Id">
+    
+    <div class="binder-header">
+        <h1>@Model.Name</h1>
+        <p>@Model.Description</p>
+        <p>Design: @Model.BinderDesign | Total Pages: @Model.Pages.Count</p>
+    </div>
+
+    @if (Model.FrontCoverImage != null && Model.FrontCoverImage.Length > 0)
+    {
+        <div class="binder-info">
+            <p>📖 Front Cover</p>
+            <div class="cover-preview">
+                <img src="data:image/png;base64,@Convert.ToBase64String(Model.FrontCoverImage)" alt="Front Cover" />
+            </div>
+        </div>
+    }
+
+    @if (Model.Pages != null && Model.Pages.Count > 0)
+    {
+        <div class="page-info">
+            <span class="page-counter">Page <span id="currentPage">1</span> of <span id="totalPages">@Model.Pages.Count</span></span>
+        </div>
+
+        <div class="binder-display">
+            <div class="page-container">
+                <div class="page" id="binderPage">
+                    <div class="page-spine">
+                        <div class="page-holes">
+                            <div class="hole"></div>
+                            <div class="hole"></div>
+                            <div class="hole"></div>
+                            <div class="hole"></div>
+                            <div class="hole"></div>
+                            <div class="hole"></div>
+                            <div class="hole"></div>
+                        </div>
+                    </div>
+                    <div class="page-content" id="pageContent">
+                        <!-- Card grid will be inserted here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-navigation">
+            <button class="btn btn-secondary" id="prevBtn" onclick="previousPage()">← Previous Page</button>
+            <div class="page-counter" id="pageInfo">Page 1 of @Model.Pages.Count</div>
+            <button class="btn btn-secondary" id="nextBtn" onclick="nextPage()">Next Page →</button>
+        </div>
+
+        <div class="action-buttons">
+            <button class="btn btn-success" onclick="openAddPageModal()">+ Add Page</button>
+            <a href="/Binder/Index" class="btn btn-primary">Back to Binders</a>
+        </div>
+    }
+    else
+    {
+        <div style="color: white; text-align: center; padding: 2rem;">
+            <p>No pages in this binder yet.</p>
+            <button class="btn btn-success" onclick="openAddPageModal()" style="margin-top: 1rem;">+ Add First Page</button>
+        </div>
+    }
+</div>
+
+<!-- Add Page Modal -->
+<div id="addPageModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add New Page</h2>
+            <button class="modal-close" onclick="closeAddPageModal()">&times;</button>
+        </div>
+        <form id="addPageForm" onsubmit="submitAddPage(event)">
+            <label for="gridSize" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Grid Layout</label>
+            <select id="gridSize" name="gridSize" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem;">
+                <option value="1">Single Slot</option>
+                <option value="4">2x2 Grid (4 Cards)</option>
+                <option value="9">3x3 Grid (9 Cards)</option>
+                <option value="16">4x4 Grid (16 Cards)</option>
+            </select>
+            <button type="submit" class="btn btn-success" style="width: 100%; margin-top: 1rem;">Add Page</button>
+        </form>
+    </div>
+</div>
+
+<!-- Add Card to Slot Modal -->
+<div id="addCardModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Select Card for Slot</h2>
+            <button class="modal-close" onclick="closeAddCardModal()">&times;</button>
+        </div>
+        <div id="cardSelectContainer">
+            <p>Loading cards...</p>
+        </div>
+        <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+            <button class="btn btn-primary" style="flex: 1;" onclick="submitAddCard()">Add Card</button>
+            <button class="btn btn-secondary" style="flex: 1;" onclick="closeAddCardModal()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+@{
+    // Add temporary Razor code to inspect at breakpoint
+    var pageCount = Model.Pages?.Count ?? 0;
+    var pagesJson = System.Text.Json.JsonSerializer.Serialize(Model.Pages);
+}
+
+<!-- Now you can see what's being rendered -->
+<script type="application/json" id="pagesData">
+    @Html.Raw(pagesJson)
+</script>
+
+<script>
+    let binderId = 0;
+    let pages = [];
+    let currentPageIndex = 0;
+    let selectedSlotId = null;
+    let selectedCardId = null;
+
+    // Initialize data from HTML attributes and JSON script tag
+    function initializeData() {
+        const container = document.querySelector('[data-binder-id]');
+        if (container) {
+            binderId = parseInt(container.getAttribute('data-binder-id'));
+        }
+
+        const pagesDataElement = document.getElementById('pagesData');
+        if (pagesDataElement && pagesDataElement.textContent) {
+            try {
+                pages = JSON.parse(pagesDataElement.textContent);
+            } catch (e) {
+                console.error('Failed to parse pages JSON:', e);
+            }
+        }
+    }
+
+    function getGridSizeClass(gridSize) {
+        switch(gridSize) {
+            case 1: return 'grid-single';
+            case 4: return 'grid-2x2';
+            case 9: return 'grid-3x3';
+            case 16: return 'grid-4x4';
+            default: return 'grid-4x4';
+        }
+    }
+
+        function renderPage(pageIndex) {
+        console.log('renderPage called with index:', pageIndex);
+        console.log('pages array:', pages);
+        console.log('pages.length:', pages.length);
+
+        if (!pages || pages.length === 0) {
+            console.error('No pages available');
+            return;
+        }
+
+        if (pageIndex < 0 || pageIndex >= pages.length) {
+            console.error('Invalid page index:', pageIndex);
+            return;
+        }
+
+        currentPageIndex = pageIndex;
+        const page = pages[pageIndex];
+        console.log('Current page:', page);
+        console.log('Page slots:', page.slots);
+
+        const pageContent = document.getElementById('pageContent');
+
+        if (!pageContent) {
+            console.error('pageContent element not found');
+            return;
+        }
+
+        const gridSizeClass = getGridSizeClass(page.gridSize);
+        pageContent.innerHTML = '';
+
+        const cardGrid = document.createElement('div');
+        cardGrid.className = `card-grid ${gridSizeClass}`;
+
+        // Check if slots exist before forEach
+        if (!page.Slots || !Array.isArray(page.Slots)) {
+            console.error('Slots is not an array or is undefined:', page.Slots);
+            return;
+        }
+
+        page.Slots.forEach((slot) => {
+            const slotDiv = document.createElement('div');
+            slotDiv.className = 'card-slot';
+            slotDiv.onclick = () => openAddCardModal(slot.id);
+            slotDiv.id = `slot-${slot.id}`;
+
+            if (slot.cardId) {
+                slotDiv.classList.add('filled');
+                slotDiv.innerHTML = `<img src="/Card/GetImage/${slot.cardId}" alt="Card" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22140%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22140%22/%3E%3C/svg%3E'" />`;
+            } else {
+                slotDiv.classList.add('empty');
+                slotDiv.innerHTML = '<span class="card-slot-placeholder">Empty Slot</span>';
+            }
+
+            cardGrid.appendChild(slotDiv);
+        });
+
+        pageContent.appendChild(cardGrid);
+
+        const pageNum = document.createElement('div');
+        pageNum.className = 'page-number';
+        pageNum.textContent = `Page ${page.pageNumber}`;
+        pageContent.appendChild(pageNum);
+
+        const currentPageEl = document.getElementById('currentPage');
+        const pageInfoEl = document.getElementById('pageInfo');
+        if (currentPageEl) currentPageEl.textContent = pageIndex + 1;
+        if (pageInfoEl) pageInfoEl.textContent = `Page ${pageIndex + 1} of ${pages.length}`;
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        if (prevBtn) prevBtn.disabled = pageIndex === 0;
+        if (nextBtn) nextBtn.disabled = pageIndex === pages.length - 1;
+
+        const pageElement = document.getElementById('binderPage');
+        if (pageElement) {
+            pageElement.style.animation = 'none';
+            setTimeout(() => {
+                pageElement.style.animation = 'pageFlip 0.6s ease-in-out';
+            }, 10);
+        }
+
+        console.log('renderPage completed successfully');
+    }
+
+    function nextPage() {
+        if (currentPageIndex < pages.length - 1) {
+            renderPage(currentPageIndex + 1);
+        }
+    }
+
+    function previousPage() {
+        if (currentPageIndex > 0) {
+            renderPage(currentPageIndex - 1);
+        }
+    }
+
+    function openAddPageModal() {
+        document.getElementById('addPageModal').classList.add('show');
+    }
+
+    function closeAddPageModal() {
+        document.getElementById('addPageModal').classList.remove('show');
+    }
+
+    function submitAddPage(event) {
+        event.preventDefault();
+        const gridSize = document.getElementById('gridSize').value;
+
+        fetch(`/Binder/AddPage?binderId=${binderId}&gridSize=${gridSize}`, {
+            method: 'POST'
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+
+    function openAddCardModal(slotId) {
+        selectedSlotId = slotId;
+        selectedCardId = null;
+        document.getElementById('addCardModal').classList.add('show');
+        loadCards();
+    }
+
+    function closeAddCardModal() {
+        document.getElementById('addCardModal').classList.remove('show');
+        selectedSlotId = null;
+        selectedCardId = null;
+    }
+
+    function loadCards() {
+        fetch('/Card/GetAllCards')
+            .then(response => response.json())
+            .then(cards => {
+                const container = document.getElementById('cardSelectContainer');
+                if (cards.length === 0) {
+                    container.innerHTML = '<p>No cards available. <a href="/Card/Create">Create a card first.</a></p>';
+                    return;
+                }
+
+                let html = '<div class="card-select">';
+                cards.forEach(card => {
+                    html += `<div class="card-option" onclick="selectCard(${card.id})" id="card-${card.id}">
+                        <div style="font-size: 0.8rem; font-weight: 600;">${card.name}</div>
+                        <div style="font-size: 0.7rem; color: #999;">${card.packName || 'N/A'}</div>
+                    </div>`;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error loading cards:', error);
+                document.getElementById('cardSelectContainer').innerHTML = '<p>Error loading cards.</p>';
+            });
+    }
+
+    function selectCard(cardId) {
+        selectedCardId = cardId;
+        document.querySelectorAll('.card-option').forEach(el => el.classList.remove('selected'));
+        document.getElementById(`card-${cardId}`).classList.add('selected');
+    }
+
+    function submitAddCard() {
+        if (!selectedSlotId || !selectedCardId) {
+            alert('Please select a card');
+            return;
+        }
+
+        fetch(`/Binder/AddCardToSlot?slotId=${selectedSlotId}&cardId=${selectedCardId}`, {
+            method: 'POST'
+        }).then(response => response.json())
+           .then(data => {
+               if (data.success) {
+                   closeAddCardModal();
+                   renderPage(currentPageIndex);
+               } else {
+                   alert('Error adding card to slot');
+               }
+           });
+    }
+
+    // Add keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') previousPage();
+        if (e.key === 'ArrowRight') nextPage();
+    });
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeData();
+        if (pages.length > 0) {
+            renderPage(0);
+        }
+    });
+</script>

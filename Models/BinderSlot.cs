@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PokemonBinder.Models
+﻿namespace PokemonBinder.Models
 {
-    internal class BinderSlot
+    public class BinderSlot
     {
+        public int Id { get; set; }
+        public int BinderPageId { get; set; }
+        public int SlotPosition { get; set; }
+        public int? CardId { get; set; }
+        public bool IsPlaceholder { get; set; }
     }
 }

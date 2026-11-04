@@ -1,10 +1,8 @@
 ﻿using PokemonBinder.Data;
 using PokemonBinder.Repositories;
 using PokemonBinder.Services;
-using System;
-using System.IO;
 
-var builder = WebApplicationBuilder.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // Database path
 string dbPath = Path.Combine(AppContext.BaseDirectory, "pokemon_binder.db");

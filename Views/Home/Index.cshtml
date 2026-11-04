@@ -1,0 +1,32 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="home-container">
+    <h2>Welcome to Pokemon Binder</h2>
+    <p>Organize and manage your Pokemon trading card collection with custom binders.</p>
+
+    <div class="action-buttons" style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <a href="/Card/Index" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background-color: #1a1a2e; color: white; text-decoration: none; border-radius: 4px;">
+            View All Cards
+        </a>
+        <a href="/Card/Create" class="btn btn-success" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+            Add New Card
+        </a>
+        <a href="/Binder/Index" class="btn btn-primary" style="padding: 0.75rem 1.5rem; background-color: #1a1a2e; color: white; text-decoration: none; border-radius: 4px;">
+            View Binders
+        </a>
+        <a href="/Binder/Create" class="btn btn-success" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+            Create Binder
+        </a>
+    </div>
+
+    <div style="margin-top: 3rem; padding: 1rem; background-color: #f9f9f9; border-radius: 4px;">
+        <h3>Getting Started</h3>
+        <ul style="margin-top: 1rem; line-height: 1.8;">
+            <li><strong>Add Cards:</strong> Go to the Cards section to add new Pokemon cards to your collection.</li>
+            <li><strong>Create Binders:</strong> Create custom binders to organize your cards in different grids (2x2, 3x3, 4x4, or single slot).</li>
+            <li><strong>Manage Collection:</strong> Track card details like rarity, holo type, artist, and more.</li>
+        </ul>
+    </div>
+</div>

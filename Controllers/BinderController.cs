@@ -4,7 +4,7 @@ using PokemonBinder.Services;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using System.Web.Mvc;
+
 
 namespace PokemonBinder.Controllers
 {
@@ -30,6 +30,11 @@ namespace PokemonBinder.Controllers
             var binder = await _binderService.GetBinderByIdAsync(id);
             if (binder == null)
                 return NotFound();
+
+            // Serialize to JSON to see what's being sent
+            var json = System.Text.Json.JsonSerializer.Serialize(binder.Pages);
+            System.Diagnostics.Debug.WriteLine("Pages JSON: " + json);
+
 
             return View(binder);
         }

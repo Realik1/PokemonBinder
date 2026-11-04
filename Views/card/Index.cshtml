@@ -1,0 +1,52 @@
+@model List<Card>
+
+@{
+    ViewData["Title"] = "Cards";
+}
+
+<h2>Pokemon Cards Collection</h2>
+
+<div style="margin-bottom: 1rem;">
+    <a href="/Card/Create" class="btn" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+        Add New Card
+    </a>
+</div>
+
+@if (Model == null || Model.Count == 0)
+{
+    <p>No cards found. <a href="/Card/Create">Add one now!</a></p>
+}
+else
+{
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead style="background-color: #f0f0f0;">
+                <tr>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Name</th>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Pack</th>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Artist</th>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Type</th>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Rarity</th>
+                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var card in Model)
+                {
+                    <tr style="border: 1px solid #ddd;">
+                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Name</td>
+                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.PackName</td>
+                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Artist</td>
+                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Type</td>
+                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Rarity</td>
+                        <td style="padding: 0.75rem; border: 1px solid #ddd;">
+                            <a href="/Card/Details/@card.Id" style="color: #007bff; text-decoration: none;">View</a> |
+                            <a href="/Card/Edit/@card.Id" style="color: #007bff; text-decoration: none;">Edit</a> |
+                            <a href="/Card/Delete/@card.Id" style="color: #dc3545; text-decoration: none;">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

@@ -31,9 +31,47 @@ namespace PokemonBinder.Controllers
             return View(card);
         }
 
-        public IActionResult Create()
+        [HttpPost]
+        public async Task<IActionResult> Create(string uniqueId, string name, string? artist,
+    string? packName, int pokedexNo, string? type, IFormCollection form, IFormFile? imageFile)
         {
-            return View();
+            try
+            {
+                var card = new Card
+                {
+                    UniqueID = uniqueId,
+                    Name = name,
+                    Artist = artist,
+                    PackName = packName,
+                    PokedexNo = pokedexNo,
+                    Type = type,
+                    IsEX = form.ContainsKey("isEX"),
+                    Rarity = form["rarity"],
+                    IsFullArt = form.ContainsKey("isFullArt"),
+                    IsHolo = form.ContainsKey("isHolo"),
+                    HoloType = form["holoType"]
+                };
+
+                int cardId = await _cardService.AddCardAsync(card);
+
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await imageFile.CopyToAsync(memoryStream);
+                        var imageData = memoryStream.ToArray();
+                        var image = await _cardService.AddCardImageAsync(imageData, imageFile.FileName);
+                        await _cardService.AssignImageToCardAsync(cardId, image.Id);
+                    }
+                }
+
+                return RedirectToAction(nameof(Details), new { id = cardId });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View();
+            }
         }
 
         [HttpPost]
@@ -66,6 +104,30 @@ namespace PokemonBinder.Controllers
                 ModelState.AddModelError("", ex.Message);
                 return View(card);
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllCards()
+        {
+            var cards = await _cardService.GetAllCardsAsync();
+            return Json(cards);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetImage(int id)
+        {
+            var card = await _cardService.GetCardByIdAsync(id);
+            if (card == null || card.CardImageId == 0)
+            {
+                // Return a placeholder image
+                return BadRequest();
+            }
+
+            var image = await _cardService.GetCardImageAsync(card.CardImageId);
+            if (image == null)
+                return NotFound();
+
+            return File(image.ImageData, image.MimeType ?? "image/png");
         }
 
         public async Task<IActionResult> Edit(int id)

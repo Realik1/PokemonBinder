@@ -1,0 +1,51 @@
+@model List<Binder>
+
+@{
+    ViewData["Title"] = "Binders";
+}
+
+<h2>Your Binders</h2>
+
+<div style="margin-bottom: 1rem;">
+    <a href="/Binder/Create" class="btn" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
+        Create New Binder
+    </a>
+</div>
+
+@if (Model == null || Model.Count == 0)
+{
+    <p>No binders found. <a href="/Binder/Create">Create one now!</a></p>
+}
+else
+{
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        @foreach (var binder in Model)
+        {
+            <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                @if (binder.FrontCoverImage != null && binder.FrontCoverImage.Length > 0)
+                {
+                    <img src="data:image/png;base64,@Convert.ToBase64String(binder.FrontCoverImage)" alt="@binder.Name" style="width: 100%; height: 200px; object-fit: cover;" />
+                }
+                else
+                {
+                    <div style="width: 100%; height: 200px; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">
+                        No Cover Image
+                    </div>
+                }
+                <div style="padding: 1rem;">
+                    <h3>@binder.Name</h3>
+                    <p style="color: #666; font-size: 0.9rem;">@binder.Description</p>
+                    <p style="color: #999; font-size: 0.85rem;">Design: @binder.BinderDesign | Pages: @binder.Pages.Count</p>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <a href="/Binder/View/@binder.Id" style="flex: 1; padding: 0.5rem; background-color: #007bff; color: white; text-decoration: none; text-align: center; border-radius: 4px;">
+                            View
+                        </a>
+                        <a href="/Binder/Delete/@binder.Id" style="flex: 1; padding: 0.5rem; background-color: #dc3545; color: white; text-decoration: none; text-align: center; border-radius: 4px;">
+                            Delete
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

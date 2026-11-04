@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "Create Binder";
+}
+
+<h2>Create New Binder</h2>
+
+<form action="/Binder/Create" method="post" enctype="multipart/form-data" style="max-width: 600px;">
+    <div style="margin-bottom: 1rem;">
+        <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Binder Name *</label>
+        <input type="text" id="name" name="name" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Description</label>
+        <textarea id="description" name="description" rows="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="design" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Design Style</label>
+        <select id="design" name="design" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="Classic">Classic</option>
+            <option value="Modern">Modern</option>
+            <option value="Vintage">Vintage</option>
+        </select>
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="frontCover" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Front Cover Image</label>
+        <input type="file" id="frontCover" name="frontCover" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="margin-bottom: 1rem;">
+        <label for="backCover" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Back Cover Image</label>
+        <input type="file" id="backCover" name="backCover" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+    </div>
+
+    <div style="display: flex; gap: 1rem;">
+        <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Create Binder
+        </button>
+        <a href="/Binder/Index" style="padding: 0.75rem 1.5rem; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
+            Cancel
+        </a>
+    </div>
+</form>
