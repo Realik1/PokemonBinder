@@ -13,7 +13,7 @@ namespace PokemonBinder.Models
         public string Description { get; set; }
         public byte[] FrontCoverImage { get; set; }
         public byte[] BackCoverImage { get; set; }
-        public string BinderDesign { get; set; }
+        public string CoverColor { get; set; } = "#1e293b";
         public DateTime CreatedDate { get; set; }
         public DateTime LastModified { get; set; }
         public List<BinderPage> Pages { get; set; } = new();

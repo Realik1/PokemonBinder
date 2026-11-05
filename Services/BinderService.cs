@@ -26,7 +26,7 @@ namespace PokemonBinder.Services
         }
 
         public async Task<int> CreateBinderAsync(string name, string description,
-            byte[] frontCover, byte[] backCover, string design = "Classic")
+            byte[] frontCover, string CoverColor)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Binder name is required");
@@ -35,9 +35,8 @@ namespace PokemonBinder.Services
             {
                 Name = name,
                 Description = description,
-                FrontCoverImage = frontCover,
-                BackCoverImage = backCover,
-                BinderDesign = design,
+                FrontCoverImage = frontCover,                                
+                CoverColor = CoverColor,
                 CreatedDate = DateTime.Now,
                 LastModified = DateTime.Now
             };

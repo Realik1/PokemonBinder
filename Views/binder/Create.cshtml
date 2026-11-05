@@ -15,13 +15,24 @@
         <textarea id="description" name="description" rows="4" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;"></textarea>
     </div>
 
-    <div style="margin-bottom: 1rem;">
-        <label for="design" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Design Style</label>
-        <select id="design" name="design" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-            <option value="Classic">Classic</option>
-            <option value="Modern">Modern</option>
-            <option value="Vintage">Vintage</option>
-        </select>
+    <!-- Inside Covers & Back Page Color Palette Picker -->
+    <div style="margin-bottom: 1.0rem;">
+        <label style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Inside Covers & Back Page Color</label>
+        <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.5rem;">
+            <!-- Preset Color Swatches -->
+            <button type="button" class="color-swatch" data-color="#1e293b" title="Dark Slate" style="width: 32px; height: 32px; border-radius: 50%; background: #1e293b; border: 2px solid #ccc; cursor: pointer;"></button>
+            <button type="button" class="color-swatch" data-color="#7f1d1d" title="Deep Crimson" style="width: 32px; height: 32px; border-radius: 50%; background: #7f1d1d; border: 2px solid #ccc; cursor: pointer;"></button>
+            <button type="button" class="color-swatch" data-color="#14532d" title="Forest Green" style="width: 32px; height: 32px; border-radius: 50%; background: #14532d; border: 2px solid #ccc; cursor: pointer;"></button>
+            <button type="button" class="color-swatch" data-color="#1e3a8a" title="Royal Blue" style="width: 32px; height: 32px; border-radius: 50%; background: #1e3a8a; border: 2px solid #ccc; cursor: pointer;"></button>
+            <button type="button" class="color-swatch" data-color="#581c87" title="Deep Purple" style="width: 32px; height: 32px; border-radius: 50%; background: #581c87; border: 2px solid #ccc; cursor: pointer;"></button>
+            <button type="button" class="color-swatch" data-color="#f8fafc" title="Classic White" style="width: 32px; height: 32px; border-radius: 50%; background: #f8fafc; border: 2px solid #ccc; cursor: pointer;"></button>
+            
+            <!-- Native Color Picker for custom codes -->
+            <input type="color" id="coverColorPicker" value="#1e293b" title="Custom Color" style="width: 40px; height: 36px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; padding: 0; background: none;" />
+        </div>
+        <!-- Hidden input bound to form submission -->
+        <input type="hidden" id="coverColor" name="coverColor" value="#1e293b" />
+        <small style="color: #6c757d;">Click a palette swatch or pick a custom color for the binder's interior pages.</small>
     </div>
 
     <div style="margin-bottom: 1rem;">
@@ -29,13 +40,8 @@
         <input type="file" id="frontCover" name="frontCover" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
     </div>
 
-    <div style="margin-bottom: 1rem;">
-        <label for="backCover" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Back Cover Image</label>
-        <input type="file" id="backCover" name="backCover" accept="image/*" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
-    </div>
-
-    <div style="display: flex; gap: 1rem;">
-        <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+        <button type="submit" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
             Create Binder
         </button>
         <a href="/Binder/Index" style="padding: 0.75rem 1.5rem; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; display: inline-block;">
@@ -43,3 +49,30 @@
         </a>
     </div>
 </form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const hiddenInput = document.getElementById('coverColor');
+        const colorPicker = document.getElementById('coverColorPicker');
+        const swatches = document.querySelectorAll('.color-swatch');
+
+        // Handle swatch clicks
+        swatches.forEach(swatch => {
+            swatch.addEventListener('click', function() {
+                const color = this.getAttribute('data-color');
+                hiddenInput.value = color;
+                colorPicker.value = color;
+                
+                // Highlight active selection border
+                swatches.forEach(s => s.style.borderColor = '#ccc');
+                this.style.borderColor = '#007bff';
+            });
+        });
+
+        // Handle native color picker changes
+        colorPicker.addEventListener('input', function() {
+            hiddenInput.value = this.value;
+            swatches.forEach(s => s.style.borderColor = '#ccc');
+        });
+    });
+</script>

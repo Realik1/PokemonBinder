@@ -48,7 +48,7 @@ namespace PokemonBinder.Services
             if (csvFile == null || csvFile.Length == 0) return 0;
 
             string packName = Path.GetFileNameWithoutExtension(csvFile.FileName);
-            
+
             int processedCount = 0;
             using var stream = csvFile.OpenReadStream();
             using var reader = new StreamReader(stream);
@@ -71,7 +71,12 @@ namespace PokemonBinder.Services
                 string rawName = values[1].Trim('"', ' ');
                 string imageUrl = values[3].Trim('"', ' ');
                 string rarity = values.Length > 5 ? values[5].Trim('"', ' ') : "Common";
+                string extNumber = values.Length > 6 ? values[6].Trim('"', ' ') : "";
                 string cardType = values.Length > 7 ? values[7].Trim('"', ' ') : "";
+                string extHPStr = values.Length > 8 ? values[8].Trim('"', ' ') : "0";
+                string extStage = values.Length > 9 ? values[9].Trim('"', ' ') : "";
+
+                int.TryParse(extHPStr, out int hp);
 
                 if (processedProductIds.Contains(productId)) continue;
                 processedProductIds.Add(productId);
@@ -79,12 +84,9 @@ namespace PokemonBinder.Services
                 string cleanedName = Regex.Replace(rawName, @"\s*-\s*\d+/\d+", "").Trim();
                 string uniqueId = $"{packName}-{productId}";
 
-                // 1. Check if card already exists
                 var existingCard = await _cardRepository.GetByUniqueIdAsync(uniqueId);
-
                 int cardImageId = existingCard?.CardImageId ?? 0;
 
-                // 2. Download/refresh image if URL is present (or if image doesn't exist yet)
                 if (!string.IsNullOrEmpty(imageUrl) && imageUrl.StartsWith("http"))
                 {
                     try
@@ -101,16 +103,22 @@ namespace PokemonBinder.Services
                             cardImageId = await _cardRepository.AddImageAsync(cardImage);
                         }
                     }
-                    catch { /* Fallback to existing image if download fails */ }
+                    catch
+                    {
+                        // Fallback gracefully if image download fails
+                    }
                 }
 
                 if (existingCard != null)
                 {
-                    // 3. Update existing card details
                     existingCard.Name = cleanedName;
                     existingCard.PackName = packName;
                     existingCard.Rarity = rarity;
                     existingCard.Type = cardType;
+                    existingCard.CardNumber = extNumber;
+                    existingCard.HP = hp;
+                    existingCard.Stage = extStage;
+
                     if (cardImageId > 0)
                     {
                         existingCard.CardImageId = cardImageId;
@@ -120,7 +128,6 @@ namespace PokemonBinder.Services
                 }
                 else
                 {
-                    // 4. Insert new card if it doesn't exist
                     var newCard = new Card
                     {
                         UniqueID = uniqueId,
@@ -128,6 +135,9 @@ namespace PokemonBinder.Services
                         PackName = packName,
                         Rarity = rarity,
                         Type = cardType,
+                        CardNumber = extNumber,
+                        HP = hp,
+                        Stage = extStage,
                         CardImageId = cardImageId,
                         DateAdded = DateTime.Now
                     };

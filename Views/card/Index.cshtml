@@ -12,16 +12,6 @@
     <p>Manage your collection, filter by artist or pack, and import CSV updates.</p>
 </div>
 
-<!-- CSV Import Section -->
-<div style="margin-bottom: 1.5rem; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-    <h3>Import Cards from CSV</h3>
-    <form asp-action="ImportCsv" method="post" enctype="multipart/form-data" style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
-        <input type="file" name="csvFile" accept=".csv" required style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
-        <button type="submit" class="btn" style="padding: 0.5rem 1rem; background-color: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
-            Upload & Import CSV
-        </button>
-    </form>
-</div>
 
 <!-- Filter Section -->
 <div style="margin-bottom: 1.5rem; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
@@ -42,6 +32,13 @@
         <div>
             <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Filter</button>
             <a href="/Card/Index" class="btn" style="padding: 0.5rem 1rem; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; margin-left: 0.5rem;">Reset</a>
+        </div>
+        <!-- CSV Import Section -->
+        <div>     
+        <!-- New Import Modal Trigger Button -->
+        <button type="button" class="btn" onclick="openImportModal()" style="padding: 0.5rem 1rem; background-color: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-left: 0.5rem; font-weight: 600;">
+        Import CSV
+        </button> 
         </div>
     </form>
 </div>
@@ -74,23 +71,28 @@ else
         <table id="cardsTable" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
                 <tr style="border-bottom: 2px solid #dee2e6; color: #495057;">
-                    <th style="padding: 0.75rem;">Thumbnail</th>
-                    <th style="padding: 0.75rem;">Unique ID</th>
-                    <th style="padding: 0.75rem;">Name</th>
-                    <th style="padding: 0.75rem;">Pack</th>
-                    <th style="padding: 0.75rem;">Artist</th>
-                    <th style="padding: 0.75rem;">Rarity</th>
-                    <th style="padding: 0.75rem; text-align: center;">Actions</th>
+                    <th data-column="thumbnail" style="padding: 0.75rem;">Thumbnail</th>
+                    <th data-column="uniqueid" style="padding: 0.75rem;">Unique ID</th>
+                    <th data-column="name" style="padding: 0.75rem;">Name</th>
+                    <th data-column="pack" style="padding: 0.75rem;">Pack</th>
+                    <th data-column="number" style="padding: 0.75rem;">Card #</th>
+                    <th data-column="type" style="padding: 0.75rem;">Type</th>
+                    <th data-column="hp" style="padding: 0.75rem;">HP</th>
+                    <th data-column="stage" style="padding: 0.75rem;">Stage</th>
+                    <th data-column="rarity" style="padding: 0.75rem;">Rarity</th>
+                    <th data-column="artist" style="padding: 0.75rem;">Artist</th>
+                    <th data-column="actions" style="padding: 0.75rem; text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var card in Model)
                 {
                     <tr class="card-row" style="border-bottom: 1px solid #dee2e6;">
-                        <td style="padding: 0.75rem;">
+                        <td data-column="thumbnail" style="padding: 0.75rem;">
                             @if (card.CardImageId > 0)
                             {
-                                <img src="/Card/GetImage/@card.Id" alt="@card.Name" 
+                                <!-- Use data-src instead of src so it only loads when displayed -->
+                                <img data-src="/Card/GetImage/@card.Id" src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2245%22 height=%2263%22%3E%3Crect fill=%22%23e9ecef%22 width=%2245%22 height=%2263%22/%3E%3C/svg%3E" alt="@card.Name" 
                                      style="width: 45px; height: 63px; object-fit: cover; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"
                                      onclick="openImageModal('/Card/GetImage/@card.Id', '@card.Name')" />
                             }
@@ -99,12 +101,16 @@ else
                                 <div style="width: 45px; height: 63px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: #6c757d;">No Image</div>
                             }
                         </td>
-                        <td style="padding: 0.75rem; font-weight: 600;">@card.UniqueID</td>
-                        <td style="padding: 0.75rem;">@card.Name</td>
-                        <td style="padding: 0.75rem;">@card.PackName</td>
-                        <td style="padding: 0.75rem;">@(card.Artist ?? "Unknown")</td>
-                        <td style="padding: 0.75rem;">@card.Rarity</td>
-                        <td style="padding: 0.75rem; text-align: center;">
+                        <td data-column="uniqueid" style="padding: 0.75rem; font-weight: 600;">@card.UniqueID</td>
+                        <td data-column="name" style="padding: 0.75rem;">@card.Name</td>
+                        <td data-column="pack" style="padding: 0.75rem;">@card.PackName</td>
+                        <td data-column="number" style="padding: 0.75rem;">@card.CardNumber</td>
+                        <td data-column="type" style="padding: 0.75rem;">@card.Type</td>
+                        <td data-column="hp" style="padding: 0.75rem;">@card.HP</td>
+                        <td data-column="stage" style="padding: 0.75rem;">@card.Stage</td>
+                        <td data-column="rarity" style="padding: 0.75rem;">@card.Rarity</td>
+                        <td data-column="artist" style="padding: 0.75rem;">@(string.IsNullOrEmpty(card.Artist) ? "Unknown" : card.Artist)</td>
+                        <td data-column="actions" style="padding: 0.75rem; text-align: center;">
                             <div style="display: flex; gap: 0.5rem; justify-content: center;">
                                 <a href="/Card/Details/@card.Id" style="padding: 0.4rem 0.6rem; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; font-size: 0.85rem;">Details</a>
                                 <a href="/Card/Edit/@card.Id" style="padding: 0.4rem 0.6rem; background-color: #ffc107; color: #212529; text-decoration: none; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">Edit</a>
@@ -126,6 +132,108 @@ else
         <h3 id="modalTitle" style="color: white; margin-top: 1rem; font-family: sans-serif;"></h3>
     </div>
 </div>
+
+<!-- CSV Import Modal -->
+<div id="importModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 450px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 0.75rem;">
+            <h3 style="margin: 0; color: #333;">Import Cards from CSV</h3>
+            <span onclick="closeImportModal()" style="font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #6c757d;" onmouseover="this.style.color='#dc3545'" onmouseout="this.style.color='#6c757d'">&times;</span>
+        </div>
+        
+        <form asp-action="ImportCsv" method="post" enctype="multipart/form-data">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">Select CSV File</label>
+                <input type="file" name="csvFile" accept=".csv" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; background: #f8f9fa;" />
+                <small style="display: block; color: #6c757d; margin-top: 0.25rem;">File name will automatically be used as the pack name.</small>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button type="button" onclick="closeImportModal()" class="btn" style="padding: 0.5rem 1rem; background-color: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button type="submit" class="btn" style="padding: 0.5rem 1.5rem; background-color: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Upload & Import</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Right-Click Column Selector Menu -->
+<div id="columnMenu" style="display: none; position: absolute; z-index: 3000; background: white; border: 1px solid #ccc; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); padding: 0.75rem; min-width: 180px;">
+    <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.25rem;">Toggle Columns</div>
+    <div id="columnCheckboxes" style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.9rem;">
+        <!-- Dynamically populated via script -->
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        initColumnSelector();
+    });
+
+    function initColumnSelector() {
+        const table = document.getElementById('cardsTable');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th');
+        const container = document.getElementById('columnCheckboxes');
+        const menu = document.getElementById('columnMenu');
+
+        // Build checklist based on table headers
+        headers.forEach((th, index) => {
+            const colName = th.getAttribute('data-column');
+            if (!colName) return;
+
+            const labelText = th.textContent.trim();
+            const isVisible = localStorage.getItem('col_' + colName) !== 'false';
+
+            // Set initial visibility
+            setColumnVisibility(colName, isVisible);
+
+            // Create checkbox UI
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '0.5rem';
+            label.style.cursor = 'pointer';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = isVisible;
+            checkbox.onchange = function () {
+                setColumnVisibility(colName, checkbox.checked);
+                localStorage.setItem('col_' + colName, checkbox.checked);
+            };
+
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(labelText));
+            container.appendChild(label);
+        });
+
+        // Right-click listener on table header
+        table.querySelector('thead').addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        });
+
+        // Hide menu on outside click
+        document.addEventListener('click', function (e) {
+            if (!menu.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    }
+
+    function setColumnVisibility(colName, isVisible) {
+        const table = document.getElementById('cardsTable');
+        if (!table) return;
+
+        const cells = table.querySelectorAll(`th[data-column="${colName}"], td[data-column="${colName}"]`);
+        cells.forEach(cell => {
+            cell.style.display = isVisible ? '' : 'none';
+        });
+    }
+</script>
 
 <script>
     let currentPage = 1;
@@ -156,14 +264,19 @@ else
         const end = start + pageSize;
 
         rows.forEach((row, index) => {
+            const img = row.querySelector('img[data-src]');
             if (index >= start && index < end) {
                 row.style.display = '';
+                // Load the image only when the row becomes visible on the current page
+                if (img && !img.src.includes(img.dataset.src)) {
+                    img.src = img.dataset.src;
+                }
             } else {
                 row.style.display = 'none';
             }
         });
 
-        // Update info text
+        // Update info text and buttons...
         const infoEl = document.getElementById('paginationInfo');
         if (infoEl) {
             const startDisplay = totalRows > 0 ? start + 1 : 0;
@@ -171,16 +284,12 @@ else
             infoEl.textContent = `Showing ${startDisplay}-${endDisplay} of ${totalRows} cards`;
         }
 
-        // Render buttons
         const buttonsEl = document.getElementById('paginationButtons');
         if (buttonsEl) {
             let html = '';
             html += `<button class="btn" ${currentPage === 1 ? 'disabled style="background:#e9ecef; color:#6c757d; border:none; padding:0.3rem 0.6rem; border-radius:4px;"' : 'onclick="goToPage(' + (currentPage - 1) + ')" style="background:#007bff; color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer;"'}>Prev</button>`;
-            
             html += `<span style="padding: 0.3rem 0.6rem; align-self: center; font-size: 0.9rem;">Page ${currentPage} of ${totalPages}</span>`;
-
             html += `<button class="btn" ${currentPage >= totalPages ? 'disabled style="background:#e9ecef; color:#6c757d; border:none; padding:0.3rem 0.6rem; border-radius:4px;"' : 'onclick="goToPage(' + (currentPage + 1) + ')" style="background:#007bff; color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer;"'}>Next</button>`;
-            
             buttonsEl.innerHTML = html;
         }
     }
@@ -200,8 +309,18 @@ else
         document.getElementById('imageModal').style.display = 'none';
     }
 
+    function openImportModal() {
+        document.getElementById('importModal').style.display = 'flex';
+    }
+
+    function closeImportModal() {
+        document.getElementById('importModal').style.display = 'none';
+    }
+
     window.onclick = function(event) {
-        const modal = document.getElementById('imageModal');
-        if (event.target === modal) closeImageModal();
+        const imageModal = document.getElementById('imageModal');
+        const importModal = document.getElementById('importModal');
+        if (event.target === imageModal) closeImageModal();
+        if (event.target === importModal) closeImportModal();
     }
 </script>

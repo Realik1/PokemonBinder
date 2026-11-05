@@ -44,14 +44,13 @@ namespace PokemonBinder.Controllers
             return View();
         }
 
+
         [HttpPost]
-        public async Task<IActionResult> Create(string name, string description,
-            string design, IFormFile frontCover, IFormFile backCover)
+        public async Task<IActionResult> Create(string name, string description, IFormFile frontCover, string coverColor)
         {
             try
             {
-                byte[] frontCoverData = null;
-                byte[] backCoverData = null;
+                byte[] frontCoverData = null;                
 
                 if (frontCover != null && frontCover.Length > 0)
                 {
@@ -62,17 +61,8 @@ namespace PokemonBinder.Controllers
                     }
                 }
 
-                if (backCover != null && backCover.Length > 0)
-                {
-                    using (var ms = new MemoryStream())
-                    {
-                        await backCover.CopyToAsync(ms);
-                        backCoverData = ms.ToArray();
-                    }
-                }
-
                 var binderId = await _binderService.CreateBinderAsync(name, description,
-                    frontCoverData, backCoverData, design);
+                    frontCoverData, coverColor);
 
                 return RedirectToAction(nameof(View), new { id = binderId });
             }
@@ -82,7 +72,7 @@ namespace PokemonBinder.Controllers
                 return View();
             }
         }
-
+        
         public async Task<IActionResult> ViewPage(int pageId)
         {
             var page = await _binderService.GetPageAsync(pageId);

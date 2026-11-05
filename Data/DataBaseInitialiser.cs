@@ -83,16 +83,14 @@ namespace PokemonBinder.Data
                                 PackName TEXT,
                                 PokedexNo INTEGER,
                                 Type TEXT,
-                                IsEX INTEGER DEFAULT 0,
                                 Rarity TEXT,
-                                IsFullArt INTEGER DEFAULT 0,
-                                IsHolo INTEGER DEFAULT 0,
-                                HoloType TEXT,
+                                CardNumber TEXT,
+                                Stage TEXT,
+                                HP INTEGER DEFAULT 0,
                                 CardImageId INTEGER,
                                 DateAdded DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 FOREIGN KEY(CardImageId) REFERENCES CardImages(Id)
-                            )
-                        ");
+                            )");
 
                         // Create Binders table
                         await ExecuteCommandAsync(connection, @"
@@ -102,7 +100,7 @@ namespace PokemonBinder.Data
                                 Description TEXT,
                                 FrontCoverImage BLOB,
                                 BackCoverImage BLOB,
-                                BinderDesign TEXT DEFAULT 'Classic',
+                                CoverColor TEXT DEFAULT '#1e293b',
                                 CreatedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 LastModified DATETIME DEFAULT CURRENT_TIMESTAMP
                             )

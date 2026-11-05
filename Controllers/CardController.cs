@@ -77,12 +77,7 @@ namespace PokemonBinder.Controllers
                     Artist = artist,
                     PackName = packName,
                     PokedexNo = pokedexNo,
-                    Type = type,
-                    IsEX = form.ContainsKey("isEX"),
-                    Rarity = form["rarity"],
-                    IsFullArt = form.ContainsKey("isFullArt"),
-                    IsHolo = form.ContainsKey("isHolo"),
-                    HoloType = form["holoType"]
+                    Type = type
                 };
 
                 int cardId = await _cardService.AddCardAsync(card);

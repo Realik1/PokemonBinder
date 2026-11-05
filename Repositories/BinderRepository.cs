@@ -22,7 +22,7 @@ namespace PokemonBinder.Repositories
         {
             var query = @"
                 SELECT Id, Name, Description, FrontCoverImage, BackCoverImage, 
-                       BinderDesign, CreatedDate, LastModified
+                       CoverColor, CreatedDate, LastModified
                 FROM Binders
                 WHERE Id = @Id
             ";
@@ -44,7 +44,7 @@ namespace PokemonBinder.Repositories
         {
             var query = @"
                 SELECT Id, Name, Description, FrontCoverImage, BackCoverImage, 
-                       BinderDesign, CreatedDate, LastModified
+                       CoverColor, CreatedDate, LastModified
                 FROM Binders
                 ORDER BY CreatedDate DESC
             ";
@@ -64,8 +64,8 @@ namespace PokemonBinder.Repositories
         public async Task<int> AddAsync(Binder binder)
         {
             var query = @"
-                INSERT INTO Binders (Name, Description, FrontCoverImage, BackCoverImage, BinderDesign)
-                VALUES (@Name, @Description, @FrontCoverImage, @BackCoverImage, @BinderDesign);
+                INSERT INTO Binders (Name, Description, FrontCoverImage, CoverColor)
+                VALUES (@Name, @Description, @FrontCoverImage, @CoverColor);
                 SELECT last_insert_rowid();
             ";
 
@@ -74,8 +74,7 @@ namespace PokemonBinder.Repositories
                 new SqliteParameter("@Name", binder.Name),
                 new SqliteParameter("@Description", binder.Description ?? (object)DBNull.Value),
                 new SqliteParameter("@FrontCoverImage", binder.FrontCoverImage ?? (object)DBNull.Value),
-                new SqliteParameter("@BackCoverImage", binder.BackCoverImage ?? (object)DBNull.Value),
-                new SqliteParameter("@BinderDesign", binder.BinderDesign ?? "Classic")
+                new SqliteParameter("@CoverColor", binder.CoverColor ?? (object)DBNull.Value)
             };
 
             var result = await _connectionManager.ExecuteScalarAsync(query, parameters);
@@ -87,8 +86,7 @@ namespace PokemonBinder.Repositories
             var query = @"
                 UPDATE Binders
                 SET Name = @Name, Description = @Description, FrontCoverImage = @FrontCoverImage,
-                    BackCoverImage = @BackCoverImage, BinderDesign = @BinderDesign, 
-                    LastModified = CURRENT_TIMESTAMP
+                    CoverColour = @CoverColour, LastModified = CURRENT_TIMESTAMP
                 WHERE Id = @Id
             ";
 
@@ -98,8 +96,7 @@ namespace PokemonBinder.Repositories
                 new SqliteParameter("@Name", binder.Name),
                 new SqliteParameter("@Description", binder.Description ?? (object)DBNull.Value),
                 new SqliteParameter("@FrontCoverImage", binder.FrontCoverImage ?? (object)DBNull.Value),
-                new SqliteParameter("@BackCoverImage", binder.BackCoverImage ?? (object)DBNull.Value),
-                new SqliteParameter("@BinderDesign", binder.BinderDesign ?? "Classic")
+                new SqliteParameter("@CoverColor", binder.CoverColor ?? (object)DBNull.Value)
             };
 
             var rowsAffected = await _connectionManager.ExecuteNonQueryAsync(query, parameters);
@@ -262,8 +259,8 @@ namespace PokemonBinder.Repositories
                 Name = reader.GetString(1),
                 Description = reader.IsDBNull(2) ? null : reader.GetString(2),
                 FrontCoverImage = reader.IsDBNull(3) ? null : (byte[])reader.GetValue(3),
-                BackCoverImage = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4),
-                BinderDesign = reader.IsDBNull(5) ? "Classic" : reader.GetString(5),
+                BackCoverImage = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4),   
+                CoverColor = reader.IsDBNull(5) ? "#1e293b" : reader.GetString(5),
                 CreatedDate = reader.GetDateTime(6),
                 LastModified = reader.GetDateTime(7)
             };

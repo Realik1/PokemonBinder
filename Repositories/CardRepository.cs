@@ -1,9 +1,9 @@
-﻿using Microsoft.Data.Sqlite;
-using PokemonBinder.Data;
-using PokemonBinder.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Data.Sqlite;
+using PokemonBinder.Data;
+using PokemonBinder.Models;
 
 namespace PokemonBinder.Repositories
 {
@@ -16,204 +16,238 @@ namespace PokemonBinder.Repositories
             _connectionManager = connectionManager;
         }
 
-        public async Task<Card> GetByIdAsync(int id)
+        public async Task<Card?> GetByIdAsync(int id)
         {
-            var query = @"
-                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, 
-                       IsEX, Rarity, IsFullArt, IsHolo, HoloType, CardImageId, DateAdded
-                FROM Cards
-                WHERE Id = @Id
-            ";
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var parameters = new[] { new SqliteParameter("@Id", id) };
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, Rarity, 
+                       CardNumber, Stage, HP, CardImageId, DateAdded 
+                FROM Cards 
+                WHERE Id = @Id;";
+            command.Parameters.AddWithValue("@Id", id);
 
-            return await _connectionManager.ExecuteQueryAsync(query, reader =>
-                MapCard(reader), parameters);
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapReaderToCard(reader);
+            }
+
+            return null;
         }
 
-        public async Task<Card> GetByUniqueIdAsync(string uniqueId)
+        public async Task<Card?> GetByUniqueIdAsync(string uniqueId)
         {
-            var query = @"
-                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, 
-                       IsEX, Rarity, IsFullArt, IsHolo, HoloType, CardImageId, DateAdded
-                FROM Cards
-                WHERE UniqueID = @UniqueID
-            ";
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var parameters = new[] { new SqliteParameter("@UniqueID", uniqueId) };
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, Rarity, 
+                       CardNumber, Stage, HP, CardImageId, DateAdded 
+                FROM Cards 
+                WHERE UniqueID = @UniqueID;";
+            command.Parameters.AddWithValue("@UniqueID", uniqueId);
 
-            return await _connectionManager.ExecuteQueryAsync(query, reader =>
-                MapCard(reader), parameters);
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapReaderToCard(reader);
+            }
+
+            return null;
         }
 
         public async Task<List<Card>> GetAllAsync()
         {
-            var query = @"
-                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, 
-                       IsEX, Rarity, IsFullArt, IsHolo, HoloType, CardImageId, DateAdded
-                FROM Cards
-                ORDER BY Name
-            ";
+            var cards = new List<Card>();
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            return await _connectionManager.ExecuteQueryListAsync(query, reader =>
-                MapCard(reader));
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, Rarity, 
+                       CardNumber, Stage, HP, CardImageId, DateAdded 
+                FROM Cards;";
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                cards.Add(MapReaderToCard(reader));
+            }
+
+            return cards;
         }
 
         public async Task<List<Card>> SearchAsync(string name, string packName = null)
         {
-            var query = @"
-                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, 
-                       IsEX, Rarity, IsFullArt, IsHolo, HoloType, CardImageId, DateAdded
-                FROM Cards
-                WHERE 1=1
-            ";
+            var cards = new List<Card>();
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var parameters = new List<SqliteParameter>();
+            using var command = connection.CreateCommand();
+            var query = @"
+                SELECT Id, UniqueID, Name, Artist, PackName, PokedexNo, Type, Rarity, 
+                       CardNumber, Stage, HP, CardImageId, DateAdded 
+                FROM Cards WHERE 1=1";
 
             if (!string.IsNullOrEmpty(name))
             {
                 query += " AND Name LIKE @Name";
-                parameters.Add(new SqliteParameter("@Name", $"%{name}%"));
+                command.Parameters.AddWithValue("@Name", $"%{name}%");
             }
-
             if (!string.IsNullOrEmpty(packName))
             {
-                query += " AND PackName = @PackName";
-                parameters.Add(new SqliteParameter("@PackName", packName));
+                query += " AND PackName LIKE @PackName";
+                command.Parameters.AddWithValue("@PackName", $"%{packName}%");
             }
 
-            query += " ORDER BY Name";
+            command.CommandText = query;
 
-            return await _connectionManager.ExecuteQueryListAsync(query, reader =>
-                MapCard(reader), parameters.ToArray());
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                cards.Add(MapReaderToCard(reader));
+            }
+
+            return cards;
         }
 
         public async Task<int> AddAsync(Card card)
         {
-            var query = @"
-                INSERT INTO Cards (UniqueID, Name, Artist, PackName, PokedexNo, Type, 
-                                   IsEX, Rarity, IsFullArt, IsHolo, HoloType, CardImageId)
-                VALUES (@UniqueID, @Name, @Artist, @PackName, @PokedexNo, @Type, 
-                        @IsEX, @Rarity, @IsFullArt, @IsHolo, @HoloType, @CardImageId);
-                SELECT last_insert_rowid();
-            ";
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var parameters = new[]
-            {
-                new SqliteParameter("@UniqueID", card.UniqueID),
-                new SqliteParameter("@Name", card.Name),
-                new SqliteParameter("@Artist", card.Artist ?? (object)DBNull.Value),
-                new SqliteParameter("@PackName", card.PackName ?? (object)DBNull.Value),
-                new SqliteParameter("@PokedexNo", card.PokedexNo),
-                new SqliteParameter("@Type", card.Type ?? (object)DBNull.Value),
-                new SqliteParameter("@IsEX", card.IsEX ? 1 : 0),
-                new SqliteParameter("@Rarity", card.Rarity ?? (object)DBNull.Value),
-                new SqliteParameter("@IsFullArt", card.IsFullArt ? 1 : 0),
-                new SqliteParameter("@IsHolo", card.IsHolo ? 1 : 0),
-                new SqliteParameter("@HoloType", card.HoloType ?? (object)DBNull.Value),
-                new SqliteParameter("@CardImageId", card.CardImageId != 0 ? (object)card.CardImageId : DBNull.Value)
-            };
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+                INSERT INTO Cards (UniqueID, Name, Artist, PackName, PokedexNo, Type, Rarity, CardNumber, Stage, HP, CardImageId, DateAdded)
+                VALUES (@UniqueID, @Name, @Artist, @PackName, @PokedexNo, @Type, @Rarity, @CardNumber, @Stage, @HP, @CardImageId, @DateAdded);
+                SELECT last_insert_rowid();";
 
-            var result = await _connectionManager.ExecuteScalarAsync(query, parameters);
-            return result != null ? Convert.ToInt32(result) : 0;
+            AddCardParameters(command, card);
+            var newId = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(newId);
         }
 
         public async Task<bool> UpdateAsync(Card card)
         {
-            var query = @"
-                UPDATE Cards
-                SET Name = @Name, Artist = @Artist, PackName = @PackName, PokedexNo = @PokedexNo,
-                    Type = @Type, IsEX = @IsEX, Rarity = @Rarity, IsFullArt = @IsFullArt,
-                    IsHolo = @IsHolo, HoloType = @HoloType, CardImageId = @CardImageId
-                WHERE Id = @Id
-            ";
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var parameters = new[]
-            {
-                new SqliteParameter("@Id", card.Id),
-                new SqliteParameter("@Name", card.Name),
-                new SqliteParameter("@Artist", card.Artist ?? (object)DBNull.Value),
-                new SqliteParameter("@PackName", card.PackName ?? (object)DBNull.Value),
-                new SqliteParameter("@PokedexNo", card.PokedexNo),
-                new SqliteParameter("@Type", card.Type ?? (object)DBNull.Value),
-                new SqliteParameter("@IsEX", card.IsEX ? 1 : 0),
-                new SqliteParameter("@Rarity", card.Rarity ?? (object)DBNull.Value),
-                new SqliteParameter("@IsFullArt", card.IsFullArt ? 1 : 0),
-                new SqliteParameter("@IsHolo", card.IsHolo ? 1 : 0),
-                new SqliteParameter("@HoloType", card.HoloType ?? (object)DBNull.Value),
-                new SqliteParameter("@CardImageId", card.CardImageId != 0 ? (object)card.CardImageId : DBNull.Value)
-            };
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
+                UPDATE Cards 
+                SET UniqueID = @UniqueID, 
+                    Name = @Name, 
+                    Artist = @Artist, 
+                    PackName = @PackName, 
+                    PokedexNo = @PokedexNo, 
+                    Type = @Type, 
+                    Rarity = @Rarity, 
+                    CardNumber = @CardNumber, 
+                    Stage = @Stage, 
+                    HP = @HP, 
+                    CardImageId = @CardImageId 
+                WHERE Id = @Id;";
 
-            var rowsAffected = await _connectionManager.ExecuteNonQueryAsync(query, parameters);
+            command.Parameters.AddWithValue("@Id", card.Id);
+            AddCardParameters(command, card);
+
+            int rowsAffected = await command.ExecuteNonQueryAsync();
             return rowsAffected > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var query = "DELETE FROM Cards WHERE Id = @Id";
-            var parameters = new[] { new SqliteParameter("@Id", id) };
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var rowsAffected = await _connectionManager.ExecuteNonQueryAsync(query, parameters);
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM Cards WHERE Id = @Id;";
+            command.Parameters.AddWithValue("@Id", id);
+
+            int rowsAffected = await command.ExecuteNonQueryAsync();
             return rowsAffected > 0;
         }
 
         public async Task<int> AddImageAsync(CardImage image)
         {
-            var query = @"
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = @"
                 INSERT INTO CardImages (ImageData, ImagePath, MimeType)
                 VALUES (@ImageData, @ImagePath, @MimeType);
-                SELECT last_insert_rowid();
-            ";
+                SELECT last_insert_rowid();";
 
-            var parameters = new[]
-            {
-                new SqliteParameter("@ImageData", image.ImageData),
-                new SqliteParameter("@ImagePath", image.ImagePath ?? (object)DBNull.Value),
-                new SqliteParameter("@MimeType", image.MimeType ?? "image/png")
-            };
+            command.Parameters.AddWithValue("@ImageData", image.ImageData);
+            command.Parameters.AddWithValue("@ImagePath", image.ImagePath ?? (object)DBNull.Value);
+            command.Parameters.AddWithValue("@MimeType", image.MimeType ?? "image/jpeg");
 
-            var result = await _connectionManager.ExecuteScalarAsync(query, parameters);
-            return result != null ? Convert.ToInt32(result) : 0;
+            var newId = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(newId);
         }
 
-        public async Task<CardImage> GetImageByIdAsync(int id)
+        public async Task<CardImage?> GetImageByIdAsync(int id)
         {
-            var query = @"
-                SELECT Id, ImageData, ImagePath, MimeType
-                FROM CardImages
-                WHERE Id = @Id
-            ";
+            using var connection = _connectionManager.GetConnection();
+            await connection.OpenAsync();
 
-            var parameters = new[] { new SqliteParameter("@Id", id) };
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, ImageData, ImagePath, MimeType FROM CardImages WHERE Id = @Id;";
+            command.Parameters.AddWithValue("@Id", id);
 
-            return await _connectionManager.ExecuteQueryAsync(query, reader =>
-                new CardImage
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new CardImage
                 {
-                    Id = reader.GetInt32(0),
-                    ImageData = (byte[])reader.GetValue(1),
-                    ImagePath = reader.IsDBNull(2) ? null : reader.GetString(2),
-                    MimeType = reader.IsDBNull(3) ? "image/png" : reader.GetString(3)
-                }, parameters);
+                    Id = Convert.ToInt32(reader["Id"]),
+                    ImageData = (byte[])reader["ImageData"],
+                    ImagePath = reader["ImagePath"]?.ToString(),
+                    MimeType = reader["MimeType"]?.ToString() ?? "image/jpeg"
+                };
+            }
+
+            return null;
         }
 
-        private Card MapCard(SqliteDataReader reader)
+        private void AddCardParameters(SqliteCommand command, Card card)
+        {
+            command.Parameters.AddWithValue("@UniqueID", card.UniqueID ?? string.Empty);
+            command.Parameters.AddWithValue("@Name", card.Name ?? string.Empty);
+            command.Parameters.AddWithValue("@Artist", (object?)card.Artist ?? DBNull.Value);
+            command.Parameters.AddWithValue("@PackName", card.PackName ?? string.Empty);
+            command.Parameters.AddWithValue("@PokedexNo", card.PokedexNo);
+            command.Parameters.AddWithValue("@Type", card.Type ?? string.Empty);
+            command.Parameters.AddWithValue("@Rarity", card.Rarity ?? string.Empty);
+            command.Parameters.AddWithValue("@CardNumber", card.CardNumber ?? string.Empty);
+            command.Parameters.AddWithValue("@Stage", card.Stage ?? string.Empty);
+            command.Parameters.AddWithValue("@HP", card.HP);
+            command.Parameters.AddWithValue("@CardImageId", card.CardImageId > 0 ? (object)card.CardImageId : DBNull.Value);
+            command.Parameters.AddWithValue("@DateAdded", card.DateAdded == default ? DateTime.Now : card.DateAdded);
+        }
+
+        private Card MapReaderToCard(SqliteDataReader reader)
         {
             return new Card
             {
-                Id = reader.GetInt32(0),
-                UniqueID = reader.GetString(1),
-                Name = reader.GetString(2),
-                Artist = reader.IsDBNull(3) ? null : reader.GetString(3),
-                PackName = reader.IsDBNull(4) ? null : reader.GetString(4),
-                PokedexNo = reader.GetInt32(5),
-                Type = reader.IsDBNull(6) ? null : reader.GetString(6),
-                IsEX = reader.GetInt32(7) == 1,
-                Rarity = reader.IsDBNull(8) ? null : reader.GetString(8),
-                IsFullArt = reader.GetInt32(9) == 1,
-                IsHolo = reader.GetInt32(10) == 1,
-                HoloType = reader.IsDBNull(11) ? null : reader.GetString(11),
-                CardImageId = reader.IsDBNull(12) ? 0 : reader.GetInt32(12),
-                DateAdded = reader.GetDateTime(13)
+                Id = Convert.ToInt32(reader["Id"]),
+                UniqueID = reader["UniqueID"]?.ToString() ?? string.Empty,
+                Name = reader["Name"]?.ToString() ?? string.Empty,
+                Artist = reader["Artist"]?.ToString() ?? string.Empty,
+                PackName = reader["PackName"]?.ToString() ?? string.Empty,
+                PokedexNo = reader["PokedexNo"] != DBNull.Value ? Convert.ToInt32(reader["PokedexNo"]) : 0,
+                Type = reader["Type"]?.ToString() ?? string.Empty,
+                Rarity = reader["Rarity"]?.ToString() ?? string.Empty,
+                CardNumber = reader["CardNumber"]?.ToString() ?? string.Empty,
+                Stage = reader["Stage"]?.ToString() ?? string.Empty,
+                HP = reader["HP"] != DBNull.Value ? Convert.ToInt32(reader["HP"]) : 0,
+                CardImageId = reader["CardImageId"] != DBNull.Value ? Convert.ToInt32(reader["CardImageId"]) : 0,
+                DateAdded = reader["DateAdded"] != DBNull.Value ? Convert.ToDateTime(reader["DateAdded"]) : DateTime.Now
             };
         }
     }

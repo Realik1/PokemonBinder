@@ -374,29 +374,12 @@
         border-bottom: 1px solid #ddd;
     }
     .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; }
-    .card-select {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-    .card-option {
-        border: 2px solid #ddd;
-        border-radius: 4px;
-        padding: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: center;
-        background-color: #f9f9f9;
-    }
-    .card-option.selected { border-color: #667eea; background-color: #e0e7ff; }
 </style>
 
 <div class="binder-viewer-container" id="binderContainer" data-binder-id="@Model.Id">
     <div class="binder-header">
         <h1>@Model.Name</h1>
-        <p>@Model.Description</p>
-        <p>Design: @Model.BinderDesign | Total Pages: @Model.Pages.Count</p>
+        <p>@Model.Description</p>        
     </div>
 
     <!-- Standalone Front Cover View State -->
@@ -409,8 +392,7 @@
             else
             {
                 <div class="cover-placeholder">
-                    <h2>@Model.Name</h2>
-                    <p style="opacity: 0.9;">@Model.BinderDesign Binder</p>
+                    <h2>@Model.Name</h2>                    
                 </div>
             }
         </div>
@@ -511,18 +493,45 @@
     </div>
 </div>
 
-<!-- Add Card to Slot Modal -->
-<div id="addCardModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Select Card for Slot</h2>
-            <button class="modal-close" onclick="closeAddCardModal()">&times;</button>
+<!-- Select Card for Slot Modal -->
+<div id="addCardModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center;">
+    <div style="background-color: white; padding: 1.5rem; border-radius: 8px; width: 90%; max-width: 700px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+        
+        <!-- Modal Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #dee2e6; padding-bottom: 0.75rem;">
+            <h3 style="margin: 0; color: #333;">Select Card for Slot</h3>
+            <span onclick="closeCardSelectModal()" style="font-size: 1.8rem; font-weight: bold; cursor: pointer; color: #6c757d;">&times;</span>
         </div>
-        <div id="cardSelectContainer"><p>Loading cards...</p></div>
-        <div style="margin-top: 1rem; display: flex; gap: 1rem;">
-            <button class="btn btn-primary" style="flex: 1;" onclick="submitAddCard()">Add Card</button>
-            <button class="btn btn-secondary" style="flex: 1;" onclick="closeAddCardModal()">Cancel</button>
+
+        <!-- Filter Bar inside Modal -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <input type="text" id="modalSearchName" placeholder="Filter by name..." onkeyup="filterModalCards()" style="flex: 1; min-width: 150px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;" />
+            <input type="text" id="modalSearchPack" placeholder="Filter by pack..." onkeyup="filterModalCards()" style="flex: 1; min-width: 150px; padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;" />
         </div>
+
+        <!-- Scrollable Card Selection List -->
+        <div id="modalCardListContainer" style="overflow-y: auto; max-height: 45vh; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 1rem;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead style="background: #f8f9fa; position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th style="padding: 0.5rem;">Card</th>
+                        <th style="padding: 0.5rem;">Name</th>
+                        <th style="padding: 0.5rem;">Pack</th>
+                        <th style="padding: 0.5rem; text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="modalCardTableBody">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal Pagination Controls Footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dee2e6; padding-top: 0.75rem;">
+            <div id="modalPaginationInfo" style="font-size: 0.85rem; color: #666;"></div>
+            <div id="modalPaginationButtons" style="display: flex; gap: 0.25rem;"></div>
+        </div>
+
     </div>
 </div>
 
@@ -534,14 +543,15 @@
     let binderId = 0;
     let pages = [];
     let currentSpreadIndex = 0; 
-    let selectedSlotId = null;
-    let selectedCardId = null;
     let isAnimating = false;
+    let activeSlotId = null;
+    let allModalCards = [];
+    let modalCurrentPage = 1;
+    let modalPageSize = 10;
 
     const hasFrontCover = @Json.Serialize(hasCover);
     const coverBase64 = @Json.Serialize(coverBase64);
-    const binderName = @Json.Serialize(Model.Name);
-    const binderDesign = @Json.Serialize(Model.BinderDesign);
+    const binderName = @Json.Serialize(Model.Name);    
 
     function initializeData() {
         const container = document.querySelector('[data-binder-id]');
@@ -555,6 +565,138 @@
                 console.error('Failed to parse pages JSON:', e);
             }
         }
+    }
+
+    function openCardSelectModal(slotId) {
+        activeSlotId = slotId;
+        modalCurrentPage = 1;
+        const searchName = document.getElementById('modalSearchName');
+        const searchPack = document.getElementById('modalSearchPack');
+        if (searchName) searchName.value = '';
+        if (searchPack) searchPack.value = '';
+        
+        document.getElementById('addCardModal').style.display = 'flex';
+        loadModalCards();
+    }
+
+    function closeCardSelectModal() {
+        document.getElementById('addCardModal').style.display = 'none';
+        activeSlotId = null;
+    }
+
+    function loadModalCards() {
+        fetch('/Card/GetAllCards')
+            .then(response => response.json())
+            .then(cards => {
+                allModalCards = cards || [];
+                renderModalTable();
+            })
+            .catch(err => console.error('Error loading cards for modal:', err));
+    }
+
+    function filterModalCards() {
+        modalCurrentPage = 1;
+        renderModalTable();
+    }
+
+    function getFilteredModalCards() {
+        const searchNameEl = document.getElementById('modalSearchName');
+        const searchPackEl = document.getElementById('modalSearchPack');
+        const nameFilter = searchNameEl ? searchNameEl.value.toLowerCase() : '';
+        const packFilter = searchPackEl ? searchPackEl.value.toLowerCase() : '';
+
+        return allModalCards.filter(card => {
+            const name = (card.name || '').toLowerCase();
+            const pack = (card.packName || '').toLowerCase();
+            return name.includes(nameFilter) && pack.includes(packFilter);
+        });
+    }
+
+    function renderModalTable() {
+        const tbody = document.getElementById('modalCardTableBody');
+        const infoEl = document.getElementById('modalPaginationInfo');
+        const buttonsEl = document.getElementById('modalPaginationButtons');
+        if (!tbody) return;
+
+        const filteredCards = getFilteredModalCards();
+        const totalRows = filteredCards.length;
+        const totalPages = Math.ceil(totalRows / modalPageSize) || 1;
+
+        if (modalCurrentPage > totalPages) modalCurrentPage = totalPages;
+        if (modalCurrentPage < 1) modalCurrentPage = 1;
+
+        const start = (modalCurrentPage - 1) * modalPageSize;
+        const end = start + modalPageSize;
+        const pageCards = filteredCards.slice(start, end);
+
+        if (totalRows === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 1.5rem; color: #6c757d;">No cards found matching your criteria.</td></tr>';
+            if (infoEl) infoEl.textContent = 'Showing 0 of 0 cards';
+            if (buttonsEl) buttonsEl.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        pageCards.forEach(card => {
+            html += `
+                <tr class="modal-card-row" style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 0.5rem;">
+                        <img src="/Card/GetImage/${card.id}" style="width: 30px; height: 42px; object-fit: cover; border-radius: 2px;" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2230%22 height=%2242%22%3E%3Crect fill=%22%23ddd%22 width=%2230%22 height=%2242%22/%3E%3C/svg%3E'" />
+                    </td>
+                    <td style="padding: 0.5rem; font-weight: 600;">${card.name}</td>
+                    <td style="padding: 0.5rem; color: #666;">${card.packName || 'N/A'}</td>
+                    <td style="padding: 0.5rem; text-align: right;">
+                        <button type="button" onclick="assignCardToActiveSlot(${card.id})" style="padding: 0.3rem 0.75rem; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+                            Add
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+
+        if (infoEl) {
+            const startDisplay = totalRows > 0 ? start + 1 : 0;
+            const endDisplay = Math.min(end, totalRows);
+            infoEl.textContent = `Showing ${startDisplay}-${endDisplay} of ${totalRows} cards`;
+        }
+
+        if (buttonsEl) {
+            let btnHtml = '';
+            btnHtml += `<button type="button" class="btn" ${modalCurrentPage === 1 ? 'disabled style="background:#e9ecef; color:#6c757d; border:none; padding:0.25rem 0.5rem; border-radius:4px; font-size:0.8rem;"' : 'onclick="changeModalPage(' + (modalCurrentPage - 1) + ')" style="background:#007bff; color:white; border:none; padding:0.25rem 0.5rem; border-radius:4px; cursor:pointer; font-size:0.8rem;"'}>Prev</button>`;
+            btnHtml += `<span style="padding: 0.25rem 0.5rem; align-self: center; font-size: 0.85rem;">Page ${modalCurrentPage} of ${totalPages}</span>`;
+            btnHtml += `<button type="button" class="btn" ${modalCurrentPage >= totalPages ? 'disabled style="background:#e9ecef; color:#6c757d; border:none; padding:0.25rem 0.5rem; border-radius:4px; font-size:0.8rem;"' : 'onclick="changeModalPage(' + (modalCurrentPage + 1) + ')" style="background:#007bff; color:white; border:none; padding:0.25rem 0.5rem; border-radius:4px; cursor:pointer; font-size:0.8rem;"'}>Next</button>`;
+            buttonsEl.innerHTML = btnHtml;
+        }
+    }
+
+    function changeModalPage(page) {
+        modalCurrentPage = page;
+        renderModalTable();
+    }
+
+    function assignCardToActiveSlot(cardId) {
+        if (!activeSlotId) return;
+
+        fetch('/Binder/AddCardToSlot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `slotId=${activeSlotId}&cardId=${cardId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeCardSelectModal();
+                const url = new URL(window.location.href);
+                url.searchParams.set('spread', currentSpreadIndex);
+                window.location.href = url.toString();
+            } else {
+                alert('Failed to assign card to slot.');
+            }
+        })
+        .catch(error => console.error('Error:', error));
     }
 
     function renderSinglePage(contentElementId, page) {
@@ -577,7 +719,7 @@
                 slotDiv.id = `slot-${slot.Id}`;
                 slotDiv.onclick = (e) => {
                     e.stopPropagation();
-                    openAddCardModal(slot.Id);
+                    openCardSelectModal(slot.Id);
                 };
                 
                 if (slot.CardId) {
@@ -599,20 +741,15 @@
     }
 
     function renderOpeningUnderneath() {
-        // Step 2: Render ONLY Page 1 on the right side underneath the cover, left side empty
         let leftContent = document.getElementById('leftPageContent');
         if (leftContent) leftContent.innerHTML = '<div class="page-number" style="margin-top: auto; width: 100%;"></div>';
-        
         renderSinglePage('rightPageContent', pages[0] || null);
     }
 
     function openBinderCover() {
         const cover = document.getElementById('binderCover');
-        
-        // Step 1: Shift cover right into position for the right-hand page
         cover.classList.add('shifting');
 
-        // Step 2: Once shift completes (600ms), reveal display area and render Page 1 underneath
         setTimeout(() => {
             document.getElementById('binderCoverWrapper').style.display = 'none';
             document.getElementById('binderDisplayArea').style.display = 'flex';
@@ -621,19 +758,16 @@
                 renderOpeningUnderneath();
             }
 
-            // Step 3: Put front cover into rightPage element to execute the open flip animation
             renderFrontCover('rightPageContent');
             const rightPage = document.getElementById('rightPage');
             rightPage.classList.add('flip-forward');
 
-            // Step 4: Midpoint (500ms into flip) - transition into Inside Cover on left / un-mirror
             setTimeout(() => {
                 renderInnerCover('rightPageContent');
                 const rightContent = document.getElementById('rightPageContent');
                 if (rightContent) rightContent.classList.add('un-mirror-forward');
             }, 500);
 
-            // Completion (1000ms into flip)
             setTimeout(() => {
                 rightPage.classList.remove('flip-forward');
                 renderPageSpread(0);
@@ -676,7 +810,6 @@
             pageContent.innerHTML = `
                 <div class="front-cover-inner">
                     <h2>${binderName}</h2>
-                    <p style="opacity: 0.9;">${binderDesign} Binder</p>
                 </div>
             `;
         }
@@ -740,7 +873,6 @@
         rightPage.classList.add('flip-forward');
 
         setTimeout(() => {
-            // Midpoint: Turning page lands on the left, so its back must show the target left page (lIdx)
             renderSinglePage('rightPageContent', pages[lIdx] || null);
             const rightContent = document.getElementById('rightPageContent');
             if (rightContent) rightContent.classList.add('un-mirror-forward');
@@ -778,7 +910,6 @@
         leftPage.classList.add('flip-backward');
 
         setTimeout(() => {
-            // Midpoint: Turning page lands on the right, so its back must show the target right page (rIdx or pages[0] for spread 0)
             if (targetSpread === 0) {
                 renderSinglePage('leftPageContent', pages[0] || null);
             } else {
@@ -812,7 +943,8 @@
         }
         
         let maxSpread = Math.ceil(pages.length / 2);
-        document.getElementById('nextBtn').disabled = currentSpreadIndex >= maxSpread;
+        const nextBtn = document.getElementById('nextBtn');
+        if (nextBtn) nextBtn.disabled = currentSpreadIndex >= maxSpread;
     }
 
     function openAddPageModal() { document.getElementById('addPageModal').classList.add('show'); }
@@ -825,61 +957,7 @@
             .then(response => { if (response.ok) location.reload(); });
     }
 
-    function openAddCardModal(slotId) {
-        selectedSlotId = slotId;
-        selectedCardId = null;
-        document.getElementById('addCardModal').classList.add('show');
-        loadCards();
-    }
-
-    function closeAddCardModal() {
-        document.getElementById('addCardModal').classList.remove('show');
-        selectedSlotId = null;
-        selectedCardId = null;
-    }
-
-    function loadCards() {
-        fetch('/Card/GetAllCards')
-            .then(response => response.json())
-            .then(cards => {
-                const container = document.getElementById('cardSelectContainer');
-                if (cards.length === 0) {
-                    container.innerHTML = '<p>No cards available. <a href="/Card/Create">Create a card first.</a></p>';
-                    return;
-                }
-                let html = '<div class="card-select">';
-                cards.forEach(card => {
-                    html += `<div class="card-option" onclick="selectCard(${card.id})" id="card-${card.id}">
-                        <div style="font-size: 0.8rem; font-weight: 600;">${card.name}</div>
-                        <div style="font-size: 0.7rem; color: #999;">${card.packName || 'N/A'}</div>
-                    </div>`;
-                });
-                html += '</div>';
-                container.innerHTML = html;
-            });
-    }
-
-    function selectCard(cardId) {
-        selectedCardId = cardId;
-        document.querySelectorAll('.card-option').forEach(el => el.classList.remove('selected'));
-        document.getElementById(`card-${cardId}`).classList.add('selected');
-    }
-
-    function submitAddCard() {
-        if (!selectedSlotId || !selectedCardId) { alert('Please select a card'); return; }
-        fetch(`/Binder/AddCardToSlot?slotId=${selectedSlotId}&cardId=${selectedCardId}`, { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    closeAddCardModal();
-                    renderPageSpread(currentSpreadIndex);
-                } else {
-                    alert('Error adding card to slot');
-                }
-            });
-    }
-
-    // Expose functions globally for inline onclick handlers
+    // Global Exposure
     window.openBinderCover = openBinderCover;
     window.closeBinder = closeBinder;
     window.nextPage = nextPage;
@@ -887,10 +965,11 @@
     window.openAddPageModal = openAddPageModal;
     window.closeAddPageModal = closeAddPageModal;
     window.submitAddPage = submitAddPage;
-    window.openAddCardModal = openAddCardModal;
-    window.closeAddCardModal = closeAddCardModal;
-    window.submitAddCard = submitAddCard;
-    window.selectCard = selectCard;
+    window.openCardSelectModal = openCardSelectModal;
+    window.closeCardSelectModal = closeCardSelectModal;
+    window.filterModalCards = filterModalCards;
+    window.changeModalPage = changeModalPage;
+    window.assignCardToActiveSlot = assignCardToActiveSlot;
 
     document.addEventListener('keydown', (e) => {
         const coverWrapper = document.getElementById('binderCoverWrapper');
@@ -904,5 +983,15 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initializeData();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const savedSpread = urlParams.get('spread');
+
+        if (savedSpread !== null && pages.length > 0) {
+            const spreadIdx = parseInt(savedSpread, 10) || 0;
+            document.getElementById('binderCoverWrapper').style.display = 'none';
+            document.getElementById('binderDisplayArea').style.display = 'flex';
+            renderPageSpread(spreadIdx);
+        }
     });
 </script>
