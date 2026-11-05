@@ -53,11 +53,11 @@
     }
 
     .binder-cover {
-        width: 320px;
-        height: 440px;
+        width: 300px;
+        height: 400px;
         background: linear-gradient(135deg, #4a569d 0%, #232531 100%);
-        border-radius: 6px 14px 14px 6px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), inset 6px 0 15px rgba(0, 0, 0, 0.4);
+        border-radius: 4px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -72,22 +72,15 @@
     }
 
     .binder-cover.shifting {
-        transform: translateX(170px);
+        transform: translateX(165px);
         box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7);
-    }
-
-    .binder-cover.opening {
-        transform: translateX(170px) rotateY(-140deg);
-        box-shadow: -20px 25px 50px rgba(0, 0, 0, 0.4);
-        transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.8s ease;
     }
 
     .binder-cover img {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        border-radius: 4px 10px 10px 4px;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+        border-radius: 4px;
     }
 
     .cover-placeholder {
@@ -98,7 +91,7 @@
         height: 100%;
         width: 100%;
         border: 2px dashed rgba(255,255,255,0.3);
-        border-radius: 4px 10px 10px 4px;
+        border-radius: 4px;
         padding: 20px;
     }
 
@@ -292,15 +285,24 @@
         margin-left: 15px;
     }
 
-    .inner-cover-inner {
+    .inner-cover-inner, .front-cover-inner {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         height: 100%;
         text-align: center;
-        color: #ccc;
+        color: white;
         margin-left: 15px;
+    }
+
+    .front-cover-inner {
+        background: linear-gradient(135deg, #4a569d 0%, #232531 100%);
+        border-radius: 4px;
+        margin-left: 0;
+        width: 100%;
+        height: 100%;
+        padding: 20px;
     }
 
     .page-navigation {
@@ -387,7 +389,6 @@
         text-align: center;
         background-color: #f9f9f9;
     }
-    .card-option:hover { border-color: #667eea; background-color: #f0f5ff; }
     .card-option.selected { border-color: #667eea; background-color: #e0e7ff; }
 </style>
 
@@ -556,19 +557,89 @@
         }
     }
 
+    function renderSinglePage(contentElementId, page) {
+        let pageContent = document.getElementById(contentElementId);
+        if (!pageContent) return;
+        pageContent.innerHTML = '';
+        
+        if (!page) {
+            pageContent.innerHTML = '<div class="page-number" style="margin-top: auto; width: 100%;"></div>';
+            return;
+        }
+        
+        const cardGrid = document.createElement('div');
+        cardGrid.className = `card-grid ${getGridSizeClass(page.GridSize)}`;
+        
+        if (page.Slots && Array.isArray(page.Slots)) {
+            page.Slots.forEach((slot) => {
+                const slotDiv = document.createElement('div');
+                slotDiv.className = 'card-slot';
+                slotDiv.id = `slot-${slot.Id}`;
+                slotDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    openAddCardModal(slot.Id);
+                };
+                
+                if (slot.CardId) {
+                    slotDiv.classList.add('filled');
+                    slotDiv.innerHTML = `<img src="/Card/GetImage/${slot.CardId}" alt="Card" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22140%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22140%22/%3E%3C/svg%3E'" />`;
+                } else {
+                    slotDiv.classList.add('empty');
+                    slotDiv.innerHTML = '<span class="card-slot-placeholder">Empty Slot</span>';
+                }
+                cardGrid.appendChild(slotDiv);
+            });
+        }
+        pageContent.appendChild(cardGrid);
+        
+        let pageNum = document.createElement('div');
+        pageNum.className = 'page-number';
+        pageNum.textContent = `Page ${page.PageNumber}`;
+        pageContent.appendChild(pageNum);
+    }
+
+    function renderOpeningUnderneath() {
+        // Step 2: Render ONLY Page 1 on the right side underneath the cover, left side empty
+        let leftContent = document.getElementById('leftPageContent');
+        if (leftContent) leftContent.innerHTML = '<div class="page-number" style="margin-top: auto; width: 100%;"></div>';
+        
+        renderSinglePage('rightPageContent', pages[0] || null);
+    }
+
     function openBinderCover() {
         const cover = document.getElementById('binderCover');
         
-        // Step 1: Slide to the right side
+        // Step 1: Shift cover right into position for the right-hand page
         cover.classList.add('shifting');
-        
-        // Step 2: At 600ms (when slide finishes), reveal the open book underneath with Page 1 loaded on the right
+
+        // Step 2: Once shift completes (600ms), reveal display area and render Page 1 underneath
         setTimeout(() => {
             document.getElementById('binderCoverWrapper').style.display = 'none';
             document.getElementById('binderDisplayArea').style.display = 'flex';
+
             if (pages.length > 0) {
-                renderPageSpread(0);
+                renderOpeningUnderneath();
             }
+
+            // Step 3: Put front cover into rightPage element to execute the open flip animation
+            renderFrontCover('rightPageContent');
+            const rightPage = document.getElementById('rightPage');
+            rightPage.classList.add('flip-forward');
+
+            // Step 4: Midpoint (500ms into flip) - transition into Inside Cover on left / un-mirror
+            setTimeout(() => {
+                renderInnerCover('rightPageContent');
+                const rightContent = document.getElementById('rightPageContent');
+                if (rightContent) rightContent.classList.add('un-mirror-forward');
+            }, 500);
+
+            // Completion (1000ms into flip)
+            setTimeout(() => {
+                rightPage.classList.remove('flip-forward');
+                renderPageSpread(0);
+                isAnimating = false;
+            }, 1000);
+
         }, 600);
     }
 
@@ -588,6 +659,26 @@
             case 9: return 'grid-3x3';
             case 16: return 'grid-4x4';
             default: return 'grid-4x4';
+        }
+    }
+
+    function renderFrontCover(contentElementId) {
+        let pageContent = document.getElementById(contentElementId);
+        if (!pageContent) return;
+        
+        if (hasFrontCover) {
+            pageContent.innerHTML = `
+                <div class="front-cover-inner" style="background: none; padding: 0;">
+                    <img src="data:image/png;base64,${coverBase64}" alt="Front Cover" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />
+                </div>
+            `;
+        } else {
+            pageContent.innerHTML = `
+                <div class="front-cover-inner">
+                    <h2>${binderName}</h2>
+                    <p style="opacity: 0.9;">${binderDesign} Binder</p>
+                </div>
+            `;
         }
     }
 
@@ -629,47 +720,6 @@
         }
 
         updatePageCounter();
-    }
-
-    function renderSinglePage(contentElementId, page) {
-        let pageContent = document.getElementById(contentElementId);
-        if (!pageContent) return;
-        pageContent.innerHTML = '';
-        
-        if (!page) {
-            pageContent.innerHTML = '<div class="page-number" style="margin-top: auto; width: 100%;"></div>';
-            return;
-        }
-        
-        const cardGrid = document.createElement('div');
-        cardGrid.className = `card-grid ${getGridSizeClass(page.GridSize)}`;
-        
-        if (page.Slots && Array.isArray(page.Slots)) {
-            page.Slots.forEach((slot) => {
-                const slotDiv = document.createElement('div');
-                slotDiv.className = 'card-slot';
-                slotDiv.id = `slot-${slot.Id}`;
-                slotDiv.onclick = (e) => {
-                    e.stopPropagation();
-                    openAddCardModal(slot.Id);
-                };
-                
-                if (slot.CardId) {
-                    slotDiv.classList.add('filled');
-                    slotDiv.innerHTML = `<img src="/Card/GetImage/${slot.CardId}" alt="Card" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22140%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22140%22/%3E%3C/svg%3E'" />`;
-                } else {
-                    slotDiv.classList.add('empty');
-                    slotDiv.innerHTML = '<span class="card-slot-placeholder">Empty Slot</span>';
-                }
-                cardGrid.appendChild(slotDiv);
-            });
-        }
-        pageContent.appendChild(cardGrid);
-        
-        let pageNum = document.createElement('div');
-        pageNum.className = 'page-number';
-        pageNum.textContent = `Page ${page.PageNumber}`;
-        pageContent.appendChild(pageNum);
     }
 
     function nextPage() {
@@ -750,7 +800,6 @@
         }
         
         let maxSpread = Math.ceil(pages.length / 2);
-        document.getElementById('prevBtndisabled = currentSpreadIndex === 0;'); // handled via text/logic
         document.getElementById('nextBtn').disabled = currentSpreadIndex >= maxSpread;
     }
 
