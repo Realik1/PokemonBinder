@@ -1,48 +1,115 @@
 @model List<Card>
 
 @{
-    ViewData["Title"] = "Cards";
+    ViewData["Title"] = "Card Collection";
+    string searchName = ViewData["SearchName"] as string ?? "";
+    string searchPack = ViewData["SearchPack"] as string ?? "";
+    string searchArtist = ViewData["SearchArtist"] as string ?? "";
 }
 
-<h2>Pokemon Cards Collection</h2>
-
-<div style="margin-bottom: 1rem;">
-    <a href="/Card/Create" class="btn" style="padding: 0.75rem 1.5rem; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">
-        Add New Card
-    </a>
+<div style="margin-bottom: 2rem;">
+    <h2>Card Collection</h2>
+    <p>Manage your collection, filter by artist or pack, and import CSV updates.</p>
 </div>
 
+<!-- CSV Import Section -->
+<div style="margin-bottom: 1.5rem; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <h3>Import Cards from CSV</h3>
+    <form asp-action="ImportCsv" method="post" enctype="multipart/form-data" style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+        <input type="file" name="csvFile" accept=".csv" required style="padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+        <button type="submit" class="btn" style="padding: 0.5rem 1rem; background-color: #17a2b8; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">
+            Upload & Import CSV
+        </button>
+    </form>
+</div>
+
+<!-- Filter Section -->
+<div style="margin-bottom: 1.5rem; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <h3>Filter Collection</h3>
+    <form method="get" asp-action="Index" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; margin-top: 1rem;">
+        <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Card Name</label>
+            <input type="text" name="searchName" value="@searchName" placeholder="Search by name..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Pack Name</label>
+            <input type="text" name="searchPack" value="@searchPack" placeholder="Search by pack..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.25rem;">Artist</label>
+            <input type="text" name="searchArtist" value="@searchArtist" placeholder="Search by artist..." style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;" />
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary" style="padding: 0.5rem 1.5rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Filter</button>
+            <a href="/Card/Index" class="btn" style="padding: 0.5rem 1rem; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px; margin-left: 0.5rem;">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Pagination Controls Header -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <div>
+        <label for="pageSizeSelect" style="font-weight: 600; font-size: 0.9rem; margin-right: 0.5rem;">Rows per page:</label>
+        <select id="pageSizeSelect" onchange="changePageSize()" style="padding: 0.4rem; border: 1px solid #ddd; border-radius: 4px;">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+        </select>
+    </div>
+    <div id="paginationInfo" style="font-size: 0.9rem; color: #666;"></div>
+    <div id="paginationButtons" style="display: flex; gap: 0.25rem;"></div>
+</div>
+
+<!-- Cards Table -->
 @if (Model == null || Model.Count == 0)
 {
-    <p>No cards found. <a href="/Card/Create">Add one now!</a></p>
+    <div style="background: white; padding: 2rem; text-align: center; border-radius: 8px;">
+        <p>No cards found matching your criteria.</p>
+    </div>
 }
 else
 {
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead style="background-color: #f0f0f0;">
-                <tr>
-                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Name</th>
-                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Pack</th>
-                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Artist</th>
-                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Type</th>
-                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Rarity</th>
-                    <th style="padding: 0.75rem; text-align: left; border: 1px solid #ddd;">Actions</th>
+    <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-x: auto;">
+        <table id="cardsTable" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 2px solid #dee2e6; color: #495057;">
+                    <th style="padding: 0.75rem;">Thumbnail</th>
+                    <th style="padding: 0.75rem;">Unique ID</th>
+                    <th style="padding: 0.75rem;">Name</th>
+                    <th style="padding: 0.75rem;">Pack</th>
+                    <th style="padding: 0.75rem;">Artist</th>
+                    <th style="padding: 0.75rem;">Rarity</th>
+                    <th style="padding: 0.75rem; text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var card in Model)
                 {
-                    <tr style="border: 1px solid #ddd;">
-                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Name</td>
-                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.PackName</td>
-                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Artist</td>
-                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Type</td>
-                        <td style="padding: 0.75rem; border: 1px solid #ddd;">@card.Rarity</td>
-                        <td style="padding: 0.75rem; border: 1px solid #ddd;">
-                            <a href="/Card/Details/@card.Id" style="color: #007bff; text-decoration: none;">View</a> |
-                            <a href="/Card/Edit/@card.Id" style="color: #007bff; text-decoration: none;">Edit</a> |
-                            <a href="/Card/Delete/@card.Id" style="color: #dc3545; text-decoration: none;">Delete</a>
+                    <tr class="card-row" style="border-bottom: 1px solid #dee2e6;">
+                        <td style="padding: 0.75rem;">
+                            @if (card.CardImageId > 0)
+                            {
+                                <img src="/Card/GetImage/@card.Id" alt="@card.Name" 
+                                     style="width: 45px; height: 63px; object-fit: cover; border-radius: 4px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.2);"
+                                     onclick="openImageModal('/Card/GetImage/@card.Id', '@card.Name')" />
+                            }
+                            else
+                            {
+                                <div style="width: 45px; height: 63px; background-color: #e9ecef; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: #6c757d;">No Image</div>
+                            }
+                        </td>
+                        <td style="padding: 0.75rem; font-weight: 600;">@card.UniqueID</td>
+                        <td style="padding: 0.75rem;">@card.Name</td>
+                        <td style="padding: 0.75rem;">@card.PackName</td>
+                        <td style="padding: 0.75rem;">@(card.Artist ?? "Unknown")</td>
+                        <td style="padding: 0.75rem;">@card.Rarity</td>
+                        <td style="padding: 0.75rem; text-align: center;">
+                            <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                                <a href="/Card/Details/@card.Id" style="padding: 0.4rem 0.6rem; background-color: #007bff; color: white; text-decoration: none; border-radius: 4px; font-size: 0.85rem;">Details</a>
+                                <a href="/Card/Edit/@card.Id" style="padding: 0.4rem 0.6rem; background-color: #ffc107; color: #212529; text-decoration: none; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">Edit</a>
+                                <a href="/Card/Delete/@card.Id" style="padding: 0.4rem 0.6rem; background-color: #dc3545; color: white; text-decoration: none; border-radius: 4px; font-size: 0.85rem;">Delete</a>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -50,3 +117,91 @@ else
         </table>
     </div>
 }
+
+<!-- Full-Scale Image Modal -->
+<div id="imageModal" style="display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); align-items: center; justify-content: center;">
+    <div style="position: relative; max-width: 90%; max-height: 90%; text-align: center;">
+        <span onclick="closeImageModal()" style="position: absolute; top: -40px; right: 0; color: white; font-size: 2.5rem; font-weight: bold; cursor: pointer;">&times;</span>
+        <img id="modalImage" src="" alt="Full Scale Card" style="max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);" />
+        <h3 id="modalTitle" style="color: white; margin-top: 1rem; font-family: sans-serif;"></h3>
+    </div>
+</div>
+
+<script>
+    let currentPage = 1;
+    let pageSize = 20;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        setupPagination();
+    });
+
+    function changePageSize() {
+        pageSize = parseInt(document.getElementById('pageSizeSelect').value);
+        currentPage = 1;
+        renderTablePage();
+    }
+
+    function setupPagination() {
+        renderTablePage();
+    }
+
+    function renderTablePage() {
+        const rows = document.querySelectorAll('.card-row');
+        const totalRows = rows.length;
+        const totalPages = Math.ceil(totalRows / pageSize) || 1;
+
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+
+        rows.forEach((row, index) => {
+            if (index >= start && index < end) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update info text
+        const infoEl = document.getElementById('paginationInfo');
+        if (infoEl) {
+            const startDisplay = totalRows > 0 ? start + 1 : 0;
+            const endDisplay = Math.min(end, totalRows);
+            infoEl.textContent = `Showing ${startDisplay}-${endDisplay} of ${totalRows} cards`;
+        }
+
+        // Render buttons
+        const buttonsEl = document.getElementById('paginationButtons');
+        if (buttonsEl) {
+            let html = '';
+            html += `<button class="btn" ${currentPage === 1 ? 'disabled style="background:#e9ecef; color:#6c757d; border:none; padding:0.3rem 0.6rem; border-radius:4px;"' : 'onclick="goToPage(' + (currentPage - 1) + ')" style="background:#007bff; color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer;"'}>Prev</button>`;
+            
+            html += `<span style="padding: 0.3rem 0.6rem; align-self: center; font-size: 0.9rem;">Page ${currentPage} of ${totalPages}</span>`;
+
+            html += `<button class="btn" ${currentPage >= totalPages ? 'disabled style="background:#e9ecef; color:#6c757d; border:none; padding:0.3rem 0.6rem; border-radius:4px;"' : 'onclick="goToPage(' + (currentPage + 1) + ')" style="background:#007bff; color:white; border:none; padding:0.3rem 0.6rem; border-radius:4px; cursor:pointer;"'}>Next</button>`;
+            
+            buttonsEl.innerHTML = html;
+        }
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        renderTablePage();
+    }
+
+    function openImageModal(imageSrc, cardName) {
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('modalTitle').textContent = cardName;
+        document.getElementById('imageModal').style.display = 'flex';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('imageModal');
+        if (event.target === modal) closeImageModal();
+    }
+</script>

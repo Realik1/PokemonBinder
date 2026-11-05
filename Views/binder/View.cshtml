@@ -469,9 +469,9 @@
             </div>
 
             <div class="page-navigation">
-                <button class="btn btn-secondary" id="prevBtn" onclick="previousPage()">← Close Cover</button>
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousPage()">← Previous Page</button>
                 <div class="page-counter" id="pageInfo">Inside Cover - Page 1 of @Model.Pages.Count</div>
-                <button class="btn btn-secondary" id="nextBtn" onclick="nextPage()">Next Spread →</button>
+                <button class="btn btn-secondary" id="nextBtn" onclick="nextPage()">Next Page →</button>
             </div>
 
             <div class="action-buttons">
@@ -740,7 +740,8 @@
         rightPage.classList.add('flip-forward');
 
         setTimeout(() => {
-            renderSinglePage('rightPageContent', pages[rIdx] || null);
+            // Midpoint: Turning page lands on the left, so its back must show the target left page (lIdx)
+            renderSinglePage('rightPageContent', pages[lIdx] || null);
             const rightContent = document.getElementById('rightPageContent');
             if (rightContent) rightContent.classList.add('un-mirror-forward');
         }, 500);
@@ -763,16 +764,27 @@
         isAnimating = true;
         let targetSpread = currentSpreadIndex - 1;
 
-        let lIdx = (targetSpread - 1) * 2 + 1;
-        let rIdx = (targetSpread - 1) * 2 + 2;
-        renderSinglePage('bgLeftPageContent', pages[lIdx] || null);
-        renderSinglePage('bgRightPageContent', pages[rIdx] || null);
+        if (targetSpread === 0) {
+            renderSinglePage('bgLeftPageContent', null);
+            renderSinglePage('bgRightPageContent', pages[0] || null);
+        } else {
+            let lIdx = (targetSpread - 1) * 2 + 1;
+            let rIdx = (targetSpread - 1) * 2 + 2;
+            renderSinglePage('bgLeftPageContent', pages[lIdx] || null);
+            renderSinglePage('bgRightPageContent', pages[rIdx] || null);
+        }
 
         const leftPage = document.getElementById('leftPage');
         leftPage.classList.add('flip-backward');
 
         setTimeout(() => {
-            renderSinglePage('leftPageContent', pages[lIdx] || null);
+            // Midpoint: Turning page lands on the right, so its back must show the target right page (rIdx or pages[0] for spread 0)
+            if (targetSpread === 0) {
+                renderSinglePage('leftPageContent', pages[0] || null);
+            } else {
+                let rIdx = (targetSpread - 1) * 2 + 2;
+                renderSinglePage('leftPageContent', pages[rIdx] || null);
+            }
             const leftContent = document.getElementById('leftPageContent');
             if (leftContent) leftContent.classList.add('un-mirror-backward');
         }, 500);

@@ -16,9 +16,20 @@ namespace PokemonBinder.Controllers
             _cardService = cardService;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string searchName, string searchPack, string searchArtist)
         {
-            var cards = await _cardService.GetAllCardsAsync();
+            var cards = await _cardService.SearchCardsAsync(searchName, searchPack);
+
+            // Optional secondary filter in-memory for artist if needed, or expand your repository search
+            if (!string.IsNullOrWhiteSpace(searchArtist))
+            {
+                cards = cards.Where(c => c.Artist != null && c.Artist.Contains(searchArtist, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            ViewData["SearchName"] = searchName;
+            ViewData["SearchPack"] = searchPack;
+            ViewData["SearchArtist"] = searchArtist;
+
             return View(cards);
         }
 
@@ -29,6 +40,28 @@ namespace PokemonBinder.Controllers
                 return NotFound();
 
             return View(card);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ImportCsv(IFormFile csvFile)
+        {
+            if (csvFile == null || csvFile.Length == 0)
+            {
+                ModelState.AddModelError("", "Please select a valid CSV file.");
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                // Pass the IFormFile directly
+                await _cardService.ImportCardsFromCsvAsync(csvFile);
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Error importing CSV: {ex.Message}");
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         [HttpPost]
@@ -107,6 +140,52 @@ namespace PokemonBinder.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var card = await _cardService.GetCardByIdAsync(id);
+            if (card == null)
+                return NotFound();
+
+            return View(card);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, Card card, IFormFile? imageFile)
+        {
+            if (id != card.Id)
+                return BadRequest();
+
+            if (!ModelState.IsValid)
+                return View(card);
+
+            try
+            {
+                // If a new image is uploaded during edit, save and update the image reference
+                if (imageFile != null && imageFile.Length > 0)
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await imageFile.CopyToAsync(memoryStream);
+                        var imageData = memoryStream.ToArray();
+                        var image = await _cardService.AddCardImageAsync(imageData, imageFile.FileName);
+                        card.CardImageId = image.Id;
+                    }
+                }
+
+                var updated = await _cardService.UpdateCardAsync(card);
+                if (!updated)
+                    return NotFound();
+
+                return RedirectToAction(nameof(Index), new { id = id });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(card);
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetAllCards()
         {
             var cards = await _cardService.GetAllCardsAsync();
@@ -129,32 +208,7 @@ namespace PokemonBinder.Controllers
 
             return File(image.ImageData, image.MimeType ?? "image/png");
         }
-
-        public async Task<IActionResult> Edit(int id)
-        {
-            var card = await _cardService.GetCardByIdAsync(id);
-            if (card == null)
-                return NotFound();
-
-            return View(card);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Edit(int id, Card card)
-        {
-            if (id != card.Id)
-                return BadRequest();
-
-            if (!ModelState.IsValid)
-                return View(card);
-
-            var updated = await _cardService.UpdateCardAsync(card);
-            if (!updated)
-                return NotFound();
-
-            return RedirectToAction(nameof(Details), new { id = id });
-        }
-
+                
         public async Task<IActionResult> Delete(int id)
         {
             var card = await _cardService.GetCardByIdAsync(id);
